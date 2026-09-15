@@ -1,10 +1,10 @@
-# Anforderungen – MVP
+# Anforderungen
 
 Status: bestätigt (Roadmap-Schritt 6)
 
 ## Grundannahme
 
-Das MVP beantwortet genau eine Frage: **Wo läuft was zu welcher Zeit?**
+Der Festival Planner beantwortet genau eine Frage: **Wo läuft was zu welcher Zeit?**
 
 Ein Festival, ein Tag. Die Programmdaten werden per Seed-Skript befüllt.
 Besucher konsumieren die Daten nur – kein Login, keine Personalisierung.
@@ -50,7 +50,7 @@ nicht-funktionale Rahmenbedingungen).
 | T2 | Die Anwendung ist lokal als ein Prozess startbar (uvicorn). |
 | T3 | Die „aktuelle Zeit" für F3 wird serverseitig in einer festen Festival-Zeitzone bestimmt: fester Offset UTC+02:00. |
 
-**Erweiterbarkeit (Leitplanke, keine Umsetzung im MVP):**
+**Erweiterbarkeit (Leitplanke, keine Umsetzung in der aktuellen Version):**
 B4 (vollständige Zeitstempel) hält einen späteren Tagesfilter / Mehrtägigkeit als reine
 Anzeige-Logik offen – kein Datenmodell-Umbau nötig.
 
@@ -72,7 +72,7 @@ Anzeige-Logik offen – kein Datenmodell-Umbau nötig.
 3. „Was läuft jetzt?" prüfen.
 4. „Was kommt als Nächstes?" (ggf. auf einer bestimmten Bühne) prüfen.
 
-## Scope-Abgrenzung – bewusst *nicht* im MVP
+## Scope-Abgrenzung – bewusst *nicht* in der aktuellen Version
 
 - Keine Benutzerkonten, kein Login, keine Authentifizierung.
 - Keine Personalisierung, kein serverseitiger Merkzettel, keine Benachrichtigungen.

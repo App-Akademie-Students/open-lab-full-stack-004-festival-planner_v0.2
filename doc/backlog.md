@@ -1,6 +1,7 @@
-e# Backlog – MVP
+# Backlog
 
-Status: bestätigt (Roadmap-Schritt 9)
+Status: v0.1 bestätigt und umgesetzt (Roadmap-Schritt 9). Für v0.2 (Refactoring Phase 1,
+Datenbank-Fokus) siehe Abschnitt „v0.2 – Refactoring Phase 1" unten.
 
 Abgeleitet aus den Muss-Anforderungen in [`requirements.md`](requirements.md).
 Technischer Rahmen: [`architecture.md`](architecture.md).
@@ -123,6 +124,25 @@ funktionieren, bevor Features gebaut werden.
 - `python -m pytest` ist grün.
 - Keine neuen Dependencies; Doku und `CLAUDE.md` sind aktuell, falls sich Entscheidungen geändert haben.
 - Status in der Übersicht oben aktualisiert.
+
+## v0.2 – Refactoring Phase 1 (Datenbank-Fokus)
+
+Technische Aufgaben ohne direkten Besucher-Nutzen, Voraussetzung für spätere Erweiterungen
+(z. B. Genre auf `Artist`, Kapazität auf `Stage`). Funktionalität und SQLite bleiben erhalten.
+Details und Reihenfolge: [`roadmap.md`](roadmap.md) (Phase 2), technischer Rahmen:
+[`architecture.md`](architecture.md).
+
+| ID | Titel | Abhängig von | Status |
+|---|---|---|---|
+| T-1 | Domain Model erweitern (`Artist`, `Stage`, `Act`) | – | erledigt |
+| T-2 | Architektur aktualisieren | T-1 | erledigt |
+| T-3 | `app/models.py` anlegen | T-2 | erledigt |
+| T-4 | API-Vertrag entscheiden (flach vs. verschachtelt) | T-3 | erledigt |
+| T-5 | `app/seed.py` auf `Artist`/`Stage`/`Act` umstellen | T-4 | offen |
+| T-6 | `app/crud.py` einführen (Queries mit Joins) | T-5 | offen |
+| T-7 | `app/routers.py` einführen, `main.py` auf App-Setup reduzieren | T-6 | offen |
+| T-8 | Tests umstellen (`tests/test_api.py` auf neue Modelle/Fixtures) | T-7 | offen |
+| T-9 | `app/db.py` auf reine Infrastruktur reduzieren (`ProgramItem` entfernen) | T-8 | offen |
 
 ## Bewusst nicht im Backlog
 

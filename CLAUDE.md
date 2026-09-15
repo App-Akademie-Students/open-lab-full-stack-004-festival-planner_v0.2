@@ -41,7 +41,7 @@ Nur für die Entwicklung (bewusste Ausnahme von T1 in `doc/requirements.md`):
 
 ## Functional Requirements
 
-Die MVP-Anforderungen (Muss / optional / Benutzeraktionen / Scope-Abgrenzung) sind in
+Die Anforderungen (Muss / optional / Benutzeraktionen / Scope-Abgrenzung) sind in
 [`doc/requirements.md`](doc/requirements.md) definiert.
 
 Kurzfassung: Ein eintägiges Festival, Programm als chronologische Liste, Filter nach Bühne,
@@ -79,7 +79,7 @@ Vollständig in [`doc/domain-model.md`](doc/domain-model.md).
 Kurzfassung: Genau eine Entität `ProgramItem` mit `id`, `title`, `stage` (String),
 `starts_at`, `ends_at` (volle Zeitstempel). Nur diese Tabelle wird persistiert.
 „Läuft jetzt / kommt als Nächstes", Sortierung und Bühnenliste werden zur Laufzeit
-berechnet bzw. abgeleitet. Keine Festival-, Stage- oder User-Entität im MVP.
+berechnet bzw. abgeleitet. Keine Festival-, Stage- oder User-Entität im Domain Model.
 
 ## Development Rules
 

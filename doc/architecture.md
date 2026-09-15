@@ -1,13 +1,16 @@
-# Architektur & Projektstruktur – MVP
+# Architektur & Projektstruktur
 
-Status: bestätigt (Roadmap-Schritt 8)
+Status: Zielstand Refactoring Phase 1 (v0.2), Stand 2026-09-15. Löst die bisherige
+Ein-Datei-Struktur (`db.py` mit Modell + Queries direkt in `main.py`) ab.
 
 Grundlage: [`requirements.md`](requirements.md), [`domain-model.md`](domain-model.md) und die
 Entscheidungen in [`../CLAUDE.md`](../CLAUDE.md) (Festival-Zeitzone UTC+02:00, pytest + httpx
 als Dev-Dependencies).
 
-Leitlinie: so klein und verständlich wie möglich. Keine Schichten, die bei genau einer Entität
-und zwei Endpunkten nichts leisten.
+Leitlinie weiterhin: so klein und verständlich wie möglich. Mit drei Entitäten (`Artist`,
+`Stage`, `Act`) und Joins reicht eine einzige Datei für Modell + Queries + Endpunkte aber nicht
+mehr aus – deshalb kommen `models.py`, `crud.py` und `routers.py` dazu. Weiterhin keine
+Repository-Klassen, kein `schemas.py`, keine `services/`.
 
 ## Projektstruktur
 
@@ -15,10 +18,13 @@ und zwei Endpunkten nichts leisten.
 festival-planner/
 ├── app/
 │   ├── __init__.py        leer – macht app/ zum importierbaren Paket
-│   ├── main.py            FastAPI-App: API-Endpunkte + Auslieferung des Frontends
-│   ├── db.py              Datenbank: Engine, Session, Modell ProgramItem
+│   ├── main.py            FastAPI-App: Objekt, Lifespan (init_db), bindet routers.py + static/ ein
+│   ├── models.py          ORM-Modelle: Artist, Stage, Act (siehe domain-model.md)
+│   ├── db.py              Datenbank-Infrastruktur: Engine, Session, init_db(), get_db()
+│   ├── crud.py            Queries: Bühnenliste, Programmliste (Joins über Artist/Stage)
+│   ├── routers.py         API-Endpunkte: GET /api/program, GET /api/stages
 │   ├── schedule.py        Business-Logik: Festival-Zeit, „läuft jetzt" / „als Nächstes"
-│   └── seed.py            Seed-Skript: Tabelle anlegen, Beispielprogramm einfügen
+│   └── seed.py            Seed-Skript: Artists/Stages anlegen, dann Acts einfügen
 ├── static/
 │   ├── index.html         die einzige Seite
 │   ├── style.css          Layout (mobiltauglich), Hervorhebung von Status
@@ -36,19 +42,23 @@ festival-planner/
 
 | Datei | Verantwortung | Abhängig von |
 |---|---|---|
-| `app/db.py` | SQLite-Pfad, Engine, Session-Factory, FastAPI-Dependency `get_db()`, Modell `ProgramItem`, `init_db()` (Tabelle anlegen). Eine Datei für alles rund um die Datenbank – bei einer Entität genügt das. | SQLAlchemy |
-| `app/schedule.py` | `FESTIVAL_TZ`, `festival_now()` und reine Funktion(en), die Programmpunkten anhand eines übergebenen Zeitpunkts einen Status zuordnen. | nur `datetime` – **kein** FastAPI, **keine** Session |
-| `app/main.py` | App-Objekt, `init_db()` beim Start, die zwei API-Endpunkte inkl. ihrer Queries, ein Pydantic-Antwortmodell, Einbinden von `static/`. | `db`, `schedule` |
-| `app/seed.py` | `python -m app.seed`: Tabelle anlegen, vorhandene Zeilen löschen, ca. 10–15 Acts auf 3 Bühnen einfügen. | `db`, `schedule` |
+| `app/models.py` | ORM-Modelle `Artist`, `Stage`, `Act` inkl. `relationship()` (siehe `domain-model.md`). | SQLAlchemy, `db.Base` |
+| `app/db.py` | SQLite-Pfad, Engine, Session-Factory, FastAPI-Dependency `get_db()`, `Base`, `init_db()` (Tabellen anlegen). Reine Infrastruktur, kein Modell mehr. | SQLAlchemy |
+| `app/crud.py` | Queries als einfache Funktionen: Bühnenliste (sortiert), Programmliste (`Act` mit Join auf `Artist`/`Stage`, sortiert, optional nach Bühne gefiltert). | `models`, `db` (Session) |
+| `app/routers.py` | Die zwei API-Endpunkte, Pydantic-Antwortmodelle; ruft `crud.py` für die Daten und `schedule.py` für den Status auf. | `crud`, `schedule`, FastAPI |
+| `app/schedule.py` | `FESTIVAL_TZ`, `festival_now()` und reine Funktion(en), die Acts anhand eines übergebenen Zeitpunkts einen Status zuordnen. | nur `datetime` – **kein** FastAPI, **keine** Session |
+| `app/main.py` | App-Objekt, `init_db()` beim Start, bindet `routers.py` und `static/` ein. Enthält selbst keine Endpunkte mehr. | `db`, `routers` |
+| `app/seed.py` | `python -m app.seed`: Tabellen anlegen, vorhandene Zeilen löschen, Artists und Stages anlegen, ca. 10–15 Acts auf 3 Bühnen mit FK-Referenzen einfügen. | `db`, `models`, `schedule` |
 | `static/*` | Reines HTML/CSS/Vanilla JS. Lädt Bühnen und Programm über die API, rendert die Liste, filtert per Dropdown, hebt Status hervor. | nur die HTTP-API |
 
 ## Wo liegt was?
 
 | Bereich | Ort |
 |---|---|
-| API | `app/main.py` |
-| Datenbank-Setup + Modell | `app/db.py` |
-| Datenbank-Queries | direkt in den Endpunkten in `app/main.py` (nur zwei `select`s – keine eigene CRUD-/Repository-Schicht) |
+| API | `app/routers.py` |
+| Datenbank-Infrastruktur | `app/db.py` |
+| Modelle | `app/models.py` |
+| Datenbank-Queries | `app/crud.py` (Joins über `Artist`/`Stage` – weiterhin nur Funktionen, keine Repository-Klassen) |
 | Business-Logik | `app/schedule.py` |
 | Frontend | `static/` |
 | Tests | `tests/` |
@@ -56,20 +66,25 @@ festival-planner/
 Ablauf einer Anfrage:
 
 ```text
-app.js ──GET /api/program?stage=X──▶ main.py ──select──▶ db.py (SQLite)
-                                        │
-                                        └──items + now──▶ schedule.py ──status──▶ JSON
+app.js ──GET /api/program?stage=X──▶ routers.py ──ruft auf──▶ crud.py ──select+join──▶ db.py (SQLite)
+                                          │
+                                          └──items + now──▶ schedule.py ──status──▶ JSON
 ```
 
 ## HTTP-API
 
 Ein Prozess (uvicorn) liefert API und Frontend aus (T2).
 
+**API-Vertrag bleibt unverändert (Entscheidung):** Obwohl `Act` selbst keine `title`/`stage`-
+Felder mehr hat (siehe `domain-model.md`), liefert die API weiterhin flache Strings – befüllt
+aus `act.artist.name` bzw. `act.stage.name`. So bleibt `static/app.js` unverändert; das ist
+Voraussetzung für „Funktionalität erhalten" in Phase 1.
+
 ### `GET /api/program?stage=<name>`
 
 Programmpunkte chronologisch nach `starts_at` sortiert, bei gleicher Startzeit alphabetisch
-nach `stage` (`ORDER BY starts_at, stage` – feste Reihenfolge, auch für Tests), optional nach
-Bühne gefiltert (B1).
+nach Bühnenname (`ORDER BY Act.starts_at, Stage.name` über den Join – feste Reihenfolge, auch
+für Tests), optional nach Bühne gefiltert (B1).
 Eine unbekannte Bühne liefert eine leere Liste, keinen Fehler.
 
 ```json
@@ -88,12 +103,13 @@ Eine unbekannte Bühne liefert eine leere Liste, keinen Fehler.
 }
 ```
 
-`status` ist `"now"`, `"next"` oder `null`. `now` ist die serverseitig bestimmte Festival-Zeit
-(T3), damit das Frontend sie anzeigen kann.
+`title` kommt aus `Artist.name`, `stage` aus `Stage.name` (Join in `crud.py`). `status` ist
+`"now"`, `"next"` oder `null`. `now` ist die serverseitig bestimmte Festival-Zeit (T3), damit
+das Frontend sie anzeigen kann.
 
 ### `GET /api/stages`
 
-Alphabetisch sortierte Liste der Bühnennamen (`SELECT DISTINCT stage`), für das Filter-Dropdown.
+Alphabetisch sortierte Liste der Bühnennamen aus der `Stage`-Tabelle, für das Filter-Dropdown.
 
 ```json
 ["Hauptbühne", "Waldbühne", "Zeltbühne"]
@@ -124,12 +140,12 @@ ohne Tricks testbar.
 - Zeitstempel werden **naiv in Festival-Ortszeit** gespeichert (ohne Zeitzonen-Info).
   SQLite speichert ohnehin keine Zeitzone, und die Seed-Daten bleiben lesbar.
 - `festival_now()` liefert passend dazu die aktuelle Zeit in UTC+02:00, ebenfalls naiv.
-- In `main.py` wird `festival_now` als FastAPI-Dependency verwendet. Tests ersetzen sie über
+- In `routers.py` wird `festival_now` als FastAPI-Dependency verwendet. Tests ersetzen sie über
   `app.dependency_overrides` durch einen festen Zeitpunkt.
 
 ## Datenbank
 
-- Eine Tabelle für `ProgramItem` (siehe `domain-model.md`), angelegt per
+- Drei Tabellen für `Artist`, `Stage`, `Act` (siehe `domain-model.md`), angelegt per
   `Base.metadata.create_all` in `init_db()` – beim App-Start und im Seed-Skript.
 - Keine Migrationen: Bei Schemaänderungen wird die Datenbank gelöscht und neu geseedet.
 - Nicht offensichtlich: Die Engine braucht `connect_args={"check_same_thread": False}`, weil
@@ -140,6 +156,8 @@ ohne Tricks testbar.
 
 Das Seed-Skript legt das Festival auf das **heutige Datum** (in Festival-Zeit). So läuft in
 einer Demo tatsächlich gerade etwas, ohne dass eine Funktion zum Simulieren der Uhrzeit nötig ist.
+Reihenfolge beim Einfügen: erst `Artist`- und `Stage`-Zeilen, danach `Act`-Zeilen mit den
+passenden FK-Referenzen.
 
 ## Frontend
 
@@ -157,20 +175,23 @@ im Importpfad – daher keine `conftest.py` und keine `pytest.ini` nötig.
   Start-/Endzeitpunkt, parallele Acts, gleiche Startzeiten, nichts mehr kommt, gefilterte Liste).
 - `tests/test_api.py` – wenige Tests: Sortierung, Bühnenfilter, Bühnenliste, `status` im JSON.
   Nutzt In-Memory-SQLite und ersetzt `get_db` und `festival_now` per `dependency_overrides`.
+  Fixtures legen jetzt erst `Artist`- und `Stage`-Zeilen an und referenzieren sie aus `Act`.
   Nicht offensichtlich: In-Memory-SQLite existiert nur pro Verbindung – deshalb mit
   `poolclass=StaticPool`, damit alle Sessions dieselbe Datenbank sehen.
 
 ## Bewusst weggelassen
 
-- `routers/`, `schemas.py`, `crud.py`, `services/`, Repository-Klassen
+- `schemas.py`, `services/`, Repository-Klassen – Pydantic-Antwortmodelle bleiben in
+  `routers.py`, `crud.py` besteht aus einfachen Funktionen statt Klassen.
 - `config.py` / `.env` – DB-Pfad und Zeitzone sind Konstanten im Code
 - Alembic-Migrationen
 - Jinja-Templates, npm/Build-Tooling, `src/`-Layout, Docker, `conftest.py`
 
-## Erweiterungspunkte (nicht im MVP)
+## Erweiterungspunkte (nicht in der aktuellen Version)
 
 - **Konflikterkennung** ist nicht Teil der bestätigten Anforderungen (nur O7, setzt Favoriten
   O4 voraus; laut Domain Model sind Überlappungen erlaubt). Käme sie hinzu, wäre sie eine
   weitere reine Funktion in `app/schedule.py` – erst nach Anpassung der Anforderungen.
 - **Tagesfilter (O1):** zusätzlicher Query-Parameter in `/api/program`, kein Schema-Umbau.
-- **Stage-Entität:** `stage` (String) → `stage_id` (FK), falls Bühnen mehr Attribute brauchen.
+- **Weitere Attribute:** Genre auf `Artist`, Kapazität/Standort auf `Stage` – durch die
+  Entitätstrennung jetzt ohne Umbau von `Act` möglich (siehe `domain-model.md`).

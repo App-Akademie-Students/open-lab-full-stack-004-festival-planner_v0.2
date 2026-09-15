@@ -17,185 +17,70 @@ Verschaffe dir bitte zuerst einen Überblick über den aktuellen Stand des Proje
 6. Was wäre jetzt der sinnvollste nächste Schritt?
 
 
-
-
-
 ## 1)
-Wir starten ein neues Lernprojekt: Festival Planner.
 
-Ziel ist ein bewusst kleines MVP für Festivalbesucher.
+Wir arbeiten ab jetzt an Version 0.2 des Festival Planners.
 
-Leitfrage:
-"Wo ist was wann?"
+Die bisherige Anwendung war als MVP angelegt. In mehreren Projektdateien und Beschreibungen wird deshalb noch der Begriff „MVP“ verwendet.
 
-Analysiere das Projektziel und formuliere eine kurze, klare Projektbeschreibung.
+Bitte prüfe das gesamte Projekt und passe die Bezeichnungen so an, dass die aktuelle Version nicht mehr generell als MVP bezeichnet wird.
 
-Noch keine Anforderungen, kein Domain Model und keinen Code erzeugen.
+Regeln:
 
-
-## 6)
-
-Die Projektbeschreibung ist bestätigt.
-
-Wir sind jetzt bei Roadmap-Schritt 6:
-Anforderungen definieren.
-
-Leite aus der Projektbeschreibung Anforderungen für ein bewusst kleines MVP ab.
-
-Erstelle:
-
-- Muss-Anforderungen
-- optionale Anforderungen
-- typische Benutzeraktionen
-- eine klare Scope-Abgrenzung
-
-Wichtig:
-- Das MVP soll so klein wie möglich bleiben.
-- Noch kein Domain Model entwerfen.
-- Noch keine Architektur festlegen.
-- Noch keinen Code erzeugen.
-
-Zeige mir zunächst deinen Vorschlag.
-
-
-## 7)
-Wir sind bei Roadmap-Schritt 7: Domain Model entwerfen.
-
-Leite aus den Muss-Anforderungen das minimal notwendige Domain Model für das MVP ab.
-
-Prüfe:
-- welche Entitäten wirklich notwendig sind
-- welche Attribute sie minimal brauchen
-- welche Daten persistent gespeichert werden müssen
-
-Halte das Modell so klein wie möglich.
-
-Noch keinen Code erzeugen.
-
-## 8)
-
-Wir sind bei Roadmap-Schritt 8: Architektur und Projektstruktur festlegen.
-
-Grundlage:
-- FastAPI
-- SQLAlchemy
-- SQLite
-- HTML/CSS/JavaScript
-- genau eine persistente Entity
-- Konflikterkennung als reine Business-Logik
-- Anwendung soll bewusst klein und verständlich bleiben
-
-Entwirf eine minimale Projektstruktur für das MVP.
-
-Beschreibe:
-- welche Ordner und Dateien wirklich notwendig sind
-- welche Verantwortung jede Datei hat
-- wo API, Datenbankzugriff, Business-Logik und Frontend liegen
-- wo die Tests liegen
-
-Vermeide unnötige Abstraktionen und Overengineering.
-
-Noch keinen Anwendungscode erzeugen.
-Zeige mir zunächst nur den Vorschlag.
-
-## 9)
-
-Wir sind bei Roadmap-Schritt 9: User Stories und Backlog konkretisieren.
-
-Leite aus den Muss-Anforderungen in doc/requirements.md kleine, umsetzbare User Stories für das MVP ab.
-
-Für jede Story:
-- Formulierung: Als ... möchte ich ... damit ...
-- 2–4 Akzeptanzkriterien
-- möglichst klein und unabhängig
-- nur MVP-Scope berücksichtigen
-
-Noch keinen Code erzeugen.
-Zeige mir zunächst nur den Vorschlag.
-
-
-## 10) Anwendungscode implementieren (Freitag, 11.09.)
-
-Setze die noch offenen User Stories aus `doc/user-stories.md` bzw. dem Backlog nacheinander um.
-
-Arbeite die Stories in der festgelegten Reihenfolge ab, ohne nach jeder Story auf meine Bestätigung zu warten.
-
-Für jede User Story:
-
-- prüfe zuerst die bestehenden Anforderungen und die Architektur,
+- Entferne „MVP“ dort, wo damit die aktuelle Anwendung oder Architektur bezeichnet wird.
     
-- implementiere nur den beschriebenen Scope,
+- Verwende stattdessen je nach Kontext neutrale Begriffe wie „Festival Planner“, „aktuelle Version“, „Domain Model“, „Architecture“ oder „Implementation“.
     
-- ergänze oder aktualisiere sinnvolle Tests,
+- Wenn ausdrücklich die alte erste Version beschrieben wird, darf „MVP“ weiterhin verwendet werden.
     
-- führe die Tests aus,
+- Ändere keine fachlichen Anforderungen, keine Architektur und keinen Programmcode.
     
-- prüfe anschließend kurz, ob die Akzeptanzkriterien erfüllt sind,
+- Führe ausschließlich diese begriffliche Bereinigung durch.
     
-- gehe danach selbstständig zur nächsten User Story über.
+- Zeige mir anschließend kurz, welche Dateien du geändert hast und welche Formulierungen ersetzt wurden.
+
+
+## 2)
+
+Analysiere die bestehende Festival-Planner-Anwendung v0.2. Verändere noch keinen Code.
+
+Untersuche:
+
+- Projektstruktur und Verantwortlichkeiten von `main.py`, `db.py`, `schedule.py`, `seed.py`
     
-Halte dich an `CLAUDE.md` sowie an die bestehenden Requirements-, Domain-Model- und Architektur-Dokumente.
-
-Keine zusätzlichen Features, Frameworks oder Architekturänderungen einführen, wenn sie nicht für die jeweilige Story notwendig sind.
-
-Nur dann stoppen und nachfragen, wenn:
-
-- Anforderungen einander widersprechen,
+- aktuelles Domain Model und SQLite-Struktur
     
-- eine Entscheidung nötig ist, die nicht aus der vorhandenen Dokumentation ableitbar ist,
+- bestehende Beziehungen
     
-- eine Änderung den vereinbarten Scope oder die Architektur wesentlich verändern würde.
+- vermischte Verantwortlichkeiten
     
-Ansonsten arbeite die User Stories selbstständig bis zum Ende ab.
+- betroffene Stellen für das geplante Refactoring
+    
 
-## 11) Abschluss und Review (Freitag, 11.09.)
+Ziel von Refactoring Phase 1:
 
-bitte in einem unabhängigen sub-task durchführen.
-Reviewe gezielt den Backend-Code des Festival Planners.
+- Funktionalität erhalten
+    
+- SQLite beibehalten
+    
+- `Artist`, `Stage`, `Act` als getrennte Entitäten
+    
+- neue Struktur mit `models.py`, `crud.py`, `routers.py`
+    
+- `schedule.py` möglichst als eigenständige Fachlogik erhalten
+    
 
+Erstelle eine kurze Ist-Analyse mit:
 
+1. aktueller Architektur
+    
+2. aktuellem Domain Model
+    
+3. Problemen/Grenzen
+    
+4. betroffenen Dateien
+    
+5. empfohlenen nächsten Refactoring-Schritten
+    
 
-Konzentriere dich auf:
-
-* `app/main.py`
-* `app/models.py`
-* `app/schedule.py`
-* die zugehörigen Tests
-
-Führe keine Änderungen durch.
-
-Prüfe den Code aus zwei Perspektiven:
-
-1. **Erfüllt die Implementierung die Akzeptanzkriterien der bereits umgesetzten User Stories?**
-2. **Ist der Code qualitativ so, dass du ihn in einem Pull Request freigeben würdest?**
-
-Bewerte dabei insbesondere:
-
-* Verständlichkeit
-* Struktur
-* Robustheit
-* Wartbarkeit
-* Tests
-* Übereinstimmung mit `CLAUDE.md`
-* Übereinstimmung mit Requirements, Domain Model und Architektur
-* Erfüllung der Akzeptanzkriterien aus dem Backlog
-
-Prüfe bei den Akzeptanzkriterien nicht nur den Happy Path, sondern auch relevante Grenzfälle.
-
-Klassifiziere jedes relevante Finding als:
-
-* ✅ OK
-* ⚠️ Änderungswunsch
-* ❌ Blocker
-
-Nenne nur relevante Findings. Vermeide rein kosmetische Vorschläge und unnötiges Refactoring.
-
-Strukturiere den Review-Bericht so:
-
-1. Erfüllung der Akzeptanzkriterien
-2. Code-Review-Findings
-3. Fehlende oder unzureichende Tests
-4. Abweichungen von Requirements, Domain Model, Architektur oder `CLAUDE.md`
-5. Gesamturteil: freigeben / freigeben mit Änderungen / nicht freigeben
-
-Ändere noch keinen Code.
+Noch keine Dateien ändern und keinen Code erzeugen.
