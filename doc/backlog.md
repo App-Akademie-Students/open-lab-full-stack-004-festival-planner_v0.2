@@ -1,7 +1,8 @@
 # Backlog
 
-Status: v0.1 bestätigt und umgesetzt (Roadmap-Schritt 9). Für v0.2 (Refactoring Phase 1,
-Datenbank-Fokus) siehe Abschnitt „v0.2 – Refactoring Phase 1" unten.
+Status: v0.1 bestätigt und umgesetzt (Roadmap-Schritt 9). v0.2 (Refactoring Phase 1,
+Datenbank-Fokus, T-1 bis T-9) ist umgesetzt – siehe Abschnitt „v0.2 – Refactoring Phase 1"
+unten. Offen: Testen und Reviewen (Roadmap-Schritt 22).
 
 Abgeleitet aus den Muss-Anforderungen in [`requirements.md`](requirements.md).
 Technischer Rahmen: [`architecture.md`](architecture.md).
@@ -138,11 +139,14 @@ Details und Reihenfolge: [`roadmap.md`](roadmap.md) (Phase 2), technischer Rahme
 | T-2 | Architektur aktualisieren | T-1 | erledigt |
 | T-3 | `app/models.py` anlegen | T-2 | erledigt |
 | T-4 | API-Vertrag entscheiden (flach vs. verschachtelt) | T-3 | erledigt |
-| T-5 | `app/seed.py` auf `Artist`/`Stage`/`Act` umstellen | T-4 | offen |
-| T-6 | `app/crud.py` einführen (Queries mit Joins) | T-5 | offen |
-| T-7 | `app/routers.py` einführen, `main.py` auf App-Setup reduzieren | T-6 | offen |
-| T-8 | Tests umstellen (`tests/test_api.py` auf neue Modelle/Fixtures) | T-7 | offen |
-| T-9 | `app/db.py` auf reine Infrastruktur reduzieren (`ProgramItem` entfernen) | T-8 | offen |
+| T-5 | `app/seed.py` auf `Artist`/`Stage`/`Act` umstellen | T-4 | erledigt |
+| T-6 | `app/crud.py` einführen (Queries mit Joins) | T-5 | erledigt |
+| T-7 | `app/routers.py` einführen, `main.py` auf App-Setup reduzieren | T-6 | erledigt |
+| T-8 | Tests umstellen (`tests/test_api.py` auf neue Modelle/Fixtures) | T-7 | erledigt |
+| T-9 | `app/db.py` auf reine Infrastruktur reduzieren (`ProgramItem` entfernen) | T-8 | erledigt |
+
+**T-4 – Entscheidung:** API-Vertrag bleibt flach (nicht verschachtelt). Begründung und
+Beispiel: [`architecture.md`](architecture.md#http-api).
 
 ## Bewusst nicht im Backlog
 

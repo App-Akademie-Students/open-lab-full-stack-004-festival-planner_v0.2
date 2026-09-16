@@ -7,8 +7,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.db import Base, ProgramItem, get_db
+from app.db import Base, get_db
 from app.main import app
+from app.models import Act, Artist, Stage
 
 # In-memory SQLite only exists per connection - StaticPool makes every
 # session share the same connection, so all sessions see the same data.
@@ -44,30 +45,35 @@ client = TestClient(app)
 def reset_db():
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+
+    hauptbuehne = Stage(name="Hauptbühne")
+    waldbuehne = Stage(name="Waldbühne")
+    zeltbuehne = Stage(name="Zeltbühne")
+
     db = TestSessionLocal()
     db.add_all(
         [
-            ProgramItem(
-                title="Rock Rebels",
-                stage="Hauptbühne",
+            Act(
+                artist=Artist(name="Rock Rebels"),
+                stage=hauptbuehne,
                 starts_at=datetime(2026, 9, 11, 13, 0),
                 ends_at=datetime(2026, 9, 11, 14, 30),
             ),
-            ProgramItem(
-                title="Folk Trio",
-                stage="Waldbühne",
+            Act(
+                artist=Artist(name="Folk Trio"),
+                stage=waldbuehne,
                 starts_at=datetime(2026, 9, 11, 12, 0),
                 ends_at=datetime(2026, 9, 11, 13, 0),
             ),
-            ProgramItem(
-                title="DJ Sunrise",
-                stage="Zeltbühne",
+            Act(
+                artist=Artist(name="DJ Sunrise"),
+                stage=zeltbuehne,
                 starts_at=datetime(2026, 9, 11, 12, 0),
                 ends_at=datetime(2026, 9, 11, 13, 0),
             ),
-            ProgramItem(
-                title="Headliner",
-                stage="Hauptbühne",
+            Act(
+                artist=Artist(name="Headliner"),
+                stage=hauptbuehne,
                 starts_at=datetime(2026, 9, 11, 16, 0),
                 ends_at=datetime(2026, 9, 11, 18, 0),
             ),
@@ -119,7 +125,9 @@ def test_root_serves_index_html():
 
 def test_program_and_stages_with_empty_database():
     db = TestSessionLocal()
-    db.query(ProgramItem).delete()
+    db.query(Act).delete()
+    db.query(Artist).delete()
+    db.query(Stage).delete()
     db.commit()
     db.close()
 

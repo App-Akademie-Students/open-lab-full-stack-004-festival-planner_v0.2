@@ -75,10 +75,37 @@ app.js ──GET /api/program?stage=X──▶ routers.py ──ruft auf──�
 
 Ein Prozess (uvicorn) liefert API und Frontend aus (T2).
 
-**API-Vertrag bleibt unverändert (Entscheidung):** Obwohl `Act` selbst keine `title`/`stage`-
-Felder mehr hat (siehe `domain-model.md`), liefert die API weiterhin flache Strings – befüllt
-aus `act.artist.name` bzw. `act.stage.name`. So bleibt `static/app.js` unverändert; das ist
-Voraussetzung für „Funktionalität erhalten" in Phase 1.
+**API-Vertrag: flach statt verschachtelt (Entscheidung, T-4).** Obwohl `Act` selbst keine
+`title`/`stage`-Felder mehr hat (siehe `domain-model.md`), liefert die API weiterhin flache
+Strings – befüllt aus `act.artist.name` bzw. `act.stage.name`.
+
+Verworfene Alternative – verschachtelte Objekte, die die neue Entitätstrennung 1:1 abbilden:
+
+```json
+{
+  "id": 1,
+  "artist": { "name": "Band A" },
+  "stage": { "name": "Hauptbühne" },
+  "starts_at": "2026-09-10T13:30:00",
+  "ends_at": "2026-09-10T14:30:00",
+  "status": "now"
+}
+```
+
+Dagegen entschieden, weil:
+
+* `static/app.js` erwartet `item.title` und `item.stage` als Strings; mit verschachtelten
+  Objekten müsste das Frontend angepasst werden.
+* Phase 1 hat als Ziel „Funktionalität erhalten, nur Datenbank-Struktur ändern" – ein
+  Frontend-Umbau gehört nicht dazu und würde Scope und Risiko unnötig vergrößern.
+* Der flache Vertrag ist für die aktuellen zwei Endpunkte ausreichend; eine spätere
+  Erweiterung um zusätzliche Felder (z. B. Genre, Kapazität) ist auch mit flachen Strings
+  möglich (siehe „Erweiterungspunkte" unten), ohne dass sich der Vertrag grundsätzlich
+  ändern muss.
+
+Der Preis dieser Entscheidung: `crud.py` muss die Umbenennung (`artist.name` → `title`,
+`stage.name` → `stage`) explizit vornehmen – die Pydantic-Antwortmodelle in `routers.py`
+bilden das ORM-Modell also nicht direkt ab.
 
 ### `GET /api/program?stage=<name>`
 

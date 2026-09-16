@@ -5,10 +5,11 @@ Run with `python -m app.seed`. Re-running replaces all existing data
 """
 from datetime import date, datetime
 
-from app.db import ProgramItem, SessionLocal, init_db
+from app.db import SessionLocal, init_db
+from app.models import Act, Artist, Stage
 from app.schedule import festival_now
 
-# (title, stage, start_hour, start_minute, end_hour, end_minute)
+# (artist name, stage name, start_hour, start_minute, end_hour, end_minute)
 SLOTS = [
     ("Opener Band", "Hauptbühne", 12, 0, 13, 0),
     ("Folk Trio", "Waldbühne", 12, 0, 13, 0),
@@ -27,27 +28,34 @@ SLOTS = [
 ]
 
 
-def build_items(day: date) -> list[ProgramItem]:
+def build_acts(day: date) -> list[Act]:
+    # One Stage row per distinct stage name, shared by all its acts (unique constraint).
+    stage_names = dict.fromkeys(stage_name for _, stage_name, *_ in SLOTS)
+    stages = {name: Stage(name=name) for name in stage_names}
+
     return [
-        ProgramItem(
-            title=title,
-            stage=stage,
+        Act(
+            artist=Artist(name=artist_name),
+            stage=stages[stage_name],
             starts_at=datetime(day.year, day.month, day.day, sh, sm),
             ends_at=datetime(day.year, day.month, day.day, eh, em),
         )
-        for title, stage, sh, sm, eh, em in SLOTS
+        for artist_name, stage_name, sh, sm, eh, em in SLOTS
     ]
 
 
 def seed() -> None:
     init_db()
     day = festival_now().date()
-    items = build_items(day)
+    acts = build_acts(day)
 
     db = SessionLocal()
     try:
-        db.query(ProgramItem).delete()
-        db.add_all(items)
+        # Delete children before parents (FK dependency).
+        db.query(Act).delete()
+        db.query(Artist).delete()
+        db.query(Stage).delete()
+        db.add_all(acts)
         db.commit()
     finally:
         db.close()

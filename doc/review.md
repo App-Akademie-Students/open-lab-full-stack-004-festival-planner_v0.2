@@ -147,3 +147,74 @@ ursprünglich empfohlene Nachtrag (Test für leere Datenbank) ist bereits umgese
 verbleibenden ⚠️-Punkte (Test-Isolation der Dependency-Overrides, fehlende DB-seitige
 Durchsetzung der Domain-Invarianten, CWD-abhängige Pfade) können als Backlog-Notiz für später
 festgehalten werden, ohne die aktuelle Freigabe zu verzögern.
+
+## 6. Nachtrag – Refactoring Phase 1 (v0.2, T-1 bis T-9), Stand 2026-09-16
+
+Unabhängiges Review des abgeschlossenen Refactorings (Backlog `doc/backlog.md`, Abschnitt
+„v0.2 – Refactoring Phase 1“) gegen `doc/domain-model.md` und `doc/architecture.md`. Geprüft:
+`app/models.py`, `app/db.py`, `app/crud.py`, `app/routers.py`, `app/main.py`, `app/seed.py`,
+`tests/test_api.py`. Verifiziert mit `python -m pytest -v`: **15 passed**, keine Fehler (dieselben
+2 harmlosen Deprecation-Warnings wie zuvor). Zusätzlich manuell gegen eine frisch geseedete
+SQLite-DB und einen laufenden `uvicorn`-Prozess geprüft (`/api/stages`, `/api/program?stage=…`,
+`/`).
+
+### Erfüllung der Akzeptanzkriterien T-1 – T-9
+
+Alle neun Teilaufgaben sind erfüllt und entsprechen dem dokumentierten Zielbild:
+
+- **T-1/T-2/T-3** – `app/models.py` enthält exakt `Artist`, `Stage`, `Act` mit den in
+  `domain-model.md` spezifizierten Feldern, FKs und `relationship()`-Paaren
+  (`back_populates` beidseitig korrekt gesetzt).
+- **T-4** – API-Vertrag bleibt flach; dokumentiert inkl. verworfener Alternative in
+  `architecture.md`.
+- **T-5** – `app/seed.py` legt pro Slot einen `Act` mit `artist=Artist(...)` und einer pro
+  Bühnenname **geteilten** `Stage`-Instanz an (`build_acts`, Zeilen 32–34) – SQLAlchemy
+  kaskadiert die Inserts von `Artist`/`Stage` vor `Act` automatisch beim `add_all`. Löschreihenfolge
+  vor dem Neu-Einfügen ist FK-korrekt (`Act` → `Artist` → `Stage`).
+- **T-6** – `app/crud.py`: `list_stages` liefert die sortierte Namensliste, `list_program` joint
+  `Act` auf `Artist`/`Stage`, sortiert nach `starts_at, Stage.name`, filtert optional. Die Query
+  selektiert die Spalten bereits umbenannt (`Artist.name.label("title")`,
+  `Stage.name.label("stage")`) – das erfüllt exakt die in `architecture.md` verlangte
+  Flach-Umsetzung „`crud.py` muss die Umbenennung vornehmen“.
+- **T-7** – `app/routers.py` enthält die zwei Endpunkte 1:1 wie zuvor in `main.py`, unverändertes
+  Response-Format; `app/main.py` ist auf App-Objekt, `lifespan`/`init_db`, `include_router` und
+  Static-Mount reduziert – keine Endpunkte mehr darin.
+- **T-8** – `tests/test_api.py`-Fixtures legen jetzt `Stage`/`Artist`/`Act`-Zeilen an; die
+  Testfälle selbst (Sortierung, Statusfeld, Filter, unbekannte Bühne, leere DB) sind unverändert
+  und bestehen weiterhin.
+- **T-9** – `app/db.py` enthält nur noch Engine, `SessionLocal`, `Base`, `init_db()`, `get_db()`;
+  `ProgramItem` und die dafür nötigen Column-Importe sind entfernt. Frisch geseedete DB enthält
+  ausschließlich die Tabellen `artists`, `stages`, `acts` (verifiziert).
+
+### Findings
+
+- ✅ **API-Vertrag unverändert** – live geprüft: `GET /api/program` und `GET /api/stages` liefern
+  weiterhin flache `title`/`stage`-Strings, `static/app.js` musste nicht angepasst werden.
+- ✅ **Kein Scope-Creep** – keine `schemas.py`, keine `services/`, keine Repository-Klassen;
+  `crud.py` bleibt bei einfachen Funktionen, wie in `architecture.md` festgelegt.
+- ✅ **Statusberechnung nach Filter weiterhin korrekt** – `routers.py` ruft `crud.list_program(db,
+  stage=stage)` **vor** `compute_statuses(rows, now)` auf; Reihenfolge entspricht der
+  dokumentierten Regel.
+- ⚠️ **Änderungswunsch – TODO widerspricht dokumentierter Entscheidung.**
+  `app/routers.py:15` trägt einen Kommentar `# TODO move to rest_schema.py` auf
+  `ProgramItemOut`. `architecture.md` legt aber explizit fest: „Bewusst weggelassen: `schemas.py`
+  … Pydantic-Antwortmodelle bleiben in `routers.py`“. Aktuell nur ein Kommentar, keine
+  Funktionsänderung – aber falls das umgesetzt werden soll, ist das eine Architekturentscheidung,
+  die zuerst in `architecture.md` und `CLAUDE.md` nachgezogen werden müsste, nicht nur im Code.
+  Empfehlung: TODO entfernen oder bewusst als neue Entscheidung dokumentieren.
+- ⚠️ **Weiterhin offen (aus Abschnitt 2 oben, unverändert durch das Refactoring):**
+  Domain-Invarianten (`name` nicht leer, `ends_at > starts_at`) sind auf `Artist`/`Stage`/`Act`
+  weiterhin nur über `nullable=False` abgesichert, nicht per `CheckConstraint`; Test-Overrides in
+  `tests/test_api.py` weiterhin auf Modulebene statt in einer Fixture mit Teardown; `DATABASE_URL`
+  und `StaticFiles`-Pfad weiterhin CWD-relativ. Alle drei unverändert nicht blockierend.
+- ⚠️ **Kosmetisch, kein Blocker:** doppelte Leerzeile in `app/crud.py` (nach den Importen);
+  ungenutzter `app`-Parameter in `main.py`s `lifespan(app: FastAPI)` (bereits seit v0.1 so, jetzt
+  von Pylance markiert).
+
+### Gesamturteil (Nachtrag)
+
+**Freigeben.** Die Migration von `ProgramItem` zu `Artist`/`Stage`/`Act` ist vollständig,
+funktional gleichwertig (API-Vertrag, Frontend, Zeitzonen- und Statusregeln unverändert) und
+durch die grüne Testsuite sowie manuelle Live-Prüfung abgesichert. Einziger nennenswerter neuer
+Punkt ist das TODO in `routers.py`, das der dokumentierten „kein `schemas.py`“-Entscheidung
+widerspricht und vor einer Umsetzung geklärt werden sollte. Keine Blocker für Roadmap-Schritt 22.
