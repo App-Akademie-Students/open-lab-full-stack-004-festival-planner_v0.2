@@ -13,8 +13,8 @@ User Stories, Priorität und Status: [`doc/backlog.md`](doc/backlog.md).
 Stand 2026-09-17: v0.1 (Roadmap-Schritt 9, User Stories US-1 bis US-6) ist umgesetzt. Phase 2
 / v0.2 (Refactoring, Datenbank-Fokus, T-1 bis T-9) ist ebenfalls umgesetzt: `Artist`, `Stage`,
 `Act` als getrennte Entitäten, Struktur aufgeteilt in `models.py`, `db.py`, `crud.py`,
-`schedule.py`, `routers.py`, `main.py`, `seed.py`. Offen: Testen und Reviewen
-(Roadmap-Schritt 22).
+`schedule.py`, `routers.py`, `main.py`, `seed.py`. Die Datenbank wurde von SQLite auf
+PostgreSQL (Neon) umgestellt. Offen: Testen und Reviewen (Roadmap-Schritt 22).
 
 Ab Phase 2 gilt eine neue Leitlinie für die Architektur: nicht mehr „so klein wie möglich"
 (MVP), sondern gut strukturiert und erweiterbar – die Struktur wächst Schritt für Schritt mit
@@ -27,7 +27,7 @@ Nach jeder Story/Aufgabe den Status in `doc/backlog.md` aktualisieren.
 * Python 3
 * FastAPI, gestartet über uvicorn
 * SQLAlchemy
-* SQLite
+* PostgreSQL (gehostet bei Neon), Treiber `psycopg` (v3)
 * HTML + CSS
 * Vanilla JavaScript – kein Framework, kein Build-Tooling
 
@@ -44,6 +44,14 @@ Nur für die Entwicklung (bewusste Ausnahme von T1 in `doc/requirements.md`):
 * **Tests:** pytest + httpx ausschließlich als Dev-Dependencies, nicht für den Betrieb.
 * **Sprache:** Projektdokumentation (`doc/`, README) auf Deutsch; Code (Bezeichner,
   Kommentare, Docstrings) auf Englisch.
+* **Datenbank (v0.2):** PostgreSQL bei Neon statt SQLite. `DATABASE_URL` liegt in `.env`
+  (nicht eingecheckt, siehe `.gitignore`) und wird in `db.py` per `python-dotenv` geladen.
+  Treiber ist `psycopg` (v3); eine `postgresql://`-URL wird in `db.py` automatisch auf
+  `postgresql+psycopg://` normalisiert, da SQLAlchemy sonst `psycopg2` erwartet, das nicht
+  installiert ist. Datenintegrität `ends_at > starts_at` wird zusätzlich als DB-seitige
+  `CheckConstraint` auf `Act` erzwungen, nicht nur in der Business-Logik.
+  Tests laufen weiterhin gegen eine In-Memory-SQLite-DB (siehe `tests/test_api.py`), nicht
+  gegen Neon.
 
 ## Functional Requirements
 
@@ -66,7 +74,7 @@ sobald ein konkreter Bedarf besteht (nicht spekulativ auf Vorrat):
 |---|---|
 | API (`GET /api/program?stage=`, `GET /api/stages`) | `app/routers.py` |
 | App-Objekt, Lifespan, bindet Router + `static/` ein | `app/main.py` |
-| Datenbank-Infrastruktur: Engine, Session, `init_db()` | `app/db.py` |
+| Datenbank-Infrastruktur: Engine (PostgreSQL/Neon, `DATABASE_URL` aus `.env`), Session, `init_db()` | `app/db.py` |
 | ORM-Modelle `Artist`, `Stage`, `Act` | `app/models.py` |
 | Datenbank-Queries (Joins über `Artist`/`Stage`) | `app/crud.py` |
 | Business-Logik: Festival-Zeit, Status „now" / „next" (reine Funktionen, ohne DB/HTTP) | `app/schedule.py` |
@@ -141,13 +149,24 @@ pip install -r requirements-dev.txt   # Entwicklung inkl. pytest + httpx
 
 `requirements-dev.txt` wird mit dem ersten Code angelegt.
 
+### Configure database connection
+
+`.env` im Projektordner anlegen (nicht eingecheckt) mit:
+
+```
+DATABASE_URL=postgresql://<user>:<password>@<host>/<db>?sslmode=require
+```
+
+Verbindungsdaten kommen aus dem Neon-Projekt.
+
 ### Seed database
 
 ```bash
 python -m app.seed
 ```
 
-Legt `festival.db` an bzw. setzt sie zurück und füllt das Programm für das heutige Datum.
+Legt die Tabellen in der über `DATABASE_URL` konfigurierten PostgreSQL-Datenbank an bzw.
+setzt sie zurück und füllt das Programm für das heutige Datum.
 
 ### Start backend
 

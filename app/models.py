@@ -1,5 +1,5 @@
 """ORM models: Artist, Stage, Act (see doc/domain-model.md)."""
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import CheckConstraint, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from app.db import Base
@@ -34,3 +34,7 @@ class Act(Base):
 
     artist = relationship("Artist", back_populates="acts")
     stage = relationship("Stage", back_populates="acts")
+
+    __table_args__ = (
+        CheckConstraint("ends_at > starts_at", name="ck_acts_ends_after_starts"),
+    )

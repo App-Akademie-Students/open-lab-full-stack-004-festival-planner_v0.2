@@ -84,3 +84,24 @@ Erstelle eine kurze Ist-Analyse mit:
     
 
 Noch keine Dateien ändern und keinen Code erzeugen.
+
+
+
+
+Stelle Festival Planner v0.2 jetzt direkt von SQLite auf die bereits eingerichtete Neon-PostgreSQL-Datenbank um.
+
+- `DATABASE_URL` liegt in `.env`.
+    
+- Prüfe `models.py` auf PostgreSQL-Kompatibilität.
+    
+- Passe `requirements.txt` und `db.py` für PostgreSQL/Neon an.
+    
+- Entferne SQLite-spezifische Konfiguration.
+- Erzeuge die Tabellen direkt mit `Base.metadata.create_all()` in Neon.
+    
+- Prüfe anschließend Tabellen, Primär-/Fremdschlüssel, UNIQUE-Constraints und `ends_at > starts_at`.
+
+- Führe die notwendigen Änderungen und Befehle selbstständig aus. Keine weiteren Architekturänderungen.
+
+- Führe danach die Tests aus und fasse Änderungen und Ergebnis kurz zusammen.
+- mache nach jedem Schritt eine kurzen Überprüfung stop und Bericht
