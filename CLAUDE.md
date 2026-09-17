@@ -10,11 +10,17 @@ Wir entwickeln einen minimalistischen Festival-Planer für Festivalbesucher.
 Phasen und Vorgehen: [`doc/roadmap.md`](doc/roadmap.md).
 User Stories, Priorität und Status: [`doc/backlog.md`](doc/backlog.md).
 
-Stand 2026-09-10: Anforderungen (Schritt 6), Domain Model (Schritt 7), Architektur und
-Projektstruktur (Schritt 8) sowie User Stories und Backlog (Schritt 9) sind bestätigt.
-Es gibt noch keinen Anwendungscode.
-Nächster Schritt: Implementieren (Schritt 10) – in Backlog-Reihenfolge, beginnend mit T-0.
-Nach jeder Story den Status in `doc/backlog.md` aktualisieren.
+Stand 2026-09-17: v0.1 (Roadmap-Schritt 9, User Stories US-1 bis US-6) ist umgesetzt. Phase 2
+/ v0.2 (Refactoring, Datenbank-Fokus, T-1 bis T-9) ist ebenfalls umgesetzt: `Artist`, `Stage`,
+`Act` als getrennte Entitäten, Struktur aufgeteilt in `models.py`, `db.py`, `crud.py`,
+`schedule.py`, `routers.py`, `main.py`, `seed.py`. Offen: Testen und Reviewen
+(Roadmap-Schritt 22).
+
+Ab Phase 2 gilt eine neue Leitlinie für die Architektur: nicht mehr „so klein wie möglich"
+(MVP), sondern gut strukturiert und erweiterbar – die Struktur wächst Schritt für Schritt mit
+der Komplexität, sobald ein konkreter Bedarf besteht. Details:
+[`doc/architecture.md`](doc/architecture.md).
+Nach jeder Story/Aufgabe den Status in `doc/backlog.md` aktualisieren.
 
 ## Tech Stack
 
@@ -52,13 +58,17 @@ wie möglich, aber im Datenmodell auf Mehrtägigkeit vorbereitet.
 
 Vollständig in [`doc/architecture.md`](doc/architecture.md).
 
-Kurzfassung – bewusst ohne zusätzliche Schichten (keine `routers/`, `schemas.py`, `crud.py`,
-`services/`):
+Kurzfassung – Leitlinie seit Phase 2: nicht mehr „so klein wie möglich", sondern gut
+strukturiert und erweiterbar; die Struktur wächst Schritt für Schritt mit der Komplexität,
+sobald ein konkreter Bedarf besteht (nicht spekulativ auf Vorrat):
 
 | Bereich | Ort |
 |---|---|
-| API (`GET /api/program?stage=`, `GET /api/stages`) + Auslieferung des Frontends | `app/main.py` |
-| Datenbank: Engine, Session, Modell `ProgramItem`, `init_db()` | `app/db.py` |
+| API (`GET /api/program?stage=`, `GET /api/stages`) | `app/routers.py` |
+| App-Objekt, Lifespan, bindet Router + `static/` ein | `app/main.py` |
+| Datenbank-Infrastruktur: Engine, Session, `init_db()` | `app/db.py` |
+| ORM-Modelle `Artist`, `Stage`, `Act` | `app/models.py` |
+| Datenbank-Queries (Joins über `Artist`/`Stage`) | `app/crud.py` |
 | Business-Logik: Festival-Zeit, Status „now" / „next" (reine Funktionen, ohne DB/HTTP) | `app/schedule.py` |
 | Seed-Skript (Festival auf das heutige Datum) | `app/seed.py` |
 | Frontend (HTML/CSS/Vanilla JS) | `static/` |
@@ -66,24 +76,31 @@ Kurzfassung – bewusst ohne zusätzliche Schichten (keine `routers/`, `schemas.
 
 Kernregeln:
 
-* Die zwei Queries stehen direkt in den Endpunkten – keine Repository-Schicht.
+* Queries stehen in `crud.py`, nicht direkt in den Endpunkten.
 * Der Status wird **nach** dem Bühnenfilter berechnet.
 * Zeitstempel werden naiv in Festival-Ortszeit (UTC+02:00) gespeichert.
-* Die Business-Logik bekommt `now` als Parameter; `festival_now` ist in `main.py` eine
-  FastAPI-Dependency und wird in Tests per `dependency_overrides` ersetzt.
+* Die Business-Logik bekommt `now` als Parameter; `festival_now` ist in `schedule.py`
+  definiert und wird in `routers.py` als FastAPI-Dependency verwendet; Tests ersetzen sie per
+  `dependency_overrides`.
+* Aktuell noch nicht vorhanden, aber kein grundsätzliches Verbot mehr: `schemas.py`,
+  `services/`, Repository-Klassen, Paket-Split (`app/api/`, `app/domain/`, …) – kommen, sobald
+  ein konkreter Bedarf entsteht. Bedingungen dafür: [`doc/architecture.md`](doc/architecture.md).
 
 ## Domain Model
 
 Vollständig in [`doc/domain-model.md`](doc/domain-model.md).
 
-Kurzfassung: Genau eine Entität `ProgramItem` mit `id`, `title`, `stage` (String),
-`starts_at`, `ends_at` (volle Zeitstempel). Nur diese Tabelle wird persistiert.
-„Läuft jetzt / kommt als Nächstes", Sortierung und Bühnenliste werden zur Laufzeit
-berechnet bzw. abgeleitet. Keine Festival-, Stage- oder User-Entität im Domain Model.
+Kurzfassung: Drei Entitäten `Artist`, `Stage`, `Act` (statt einer flachen
+`ProgramItem`-Tabelle). `Act` referenziert `Artist` und `Stage` per Fremdschlüssel und trägt
+`starts_at`/`ends_at`. Die API liefert weiterhin flache `title`/`stage`-Strings, befüllt aus
+den Beziehungen (Entscheidung siehe `architecture.md`).
+„Läuft jetzt / kommt als Nächstes", Sortierung und Bühnenliste werden zur Laufzeit berechnet
+bzw. abgeleitet. Keine Festival- oder User-Entität im Domain Model.
 
 ## Development Rules
 
-* Keep the application small and focused.
+* Let the application grow in complexity step by step; introduce new structure (files,
+  packages, layers) only when a concrete need justifies it, not speculatively.
 * Do not add unnecessary frameworks or dependencies.
 * Analyze requirements before implementing changes.
 * Keep the existing project structure and coding style consistent.
@@ -155,3 +172,19 @@ Files in `teaching/` are intended for participants only.
 Do not read, analyze, summarize, or use files from this directory unless the user explicitly asks for it.
 
 For you teaching/ is write only. When ever you think you have interesting information for teaching you can add it to teaching/
+
+
+## Requirements Policy
+
+`doc/requirements.md` represents the current required
+behavior of the system.
+
+When requirements change:
+
+- update the current requirements instead of appending
+  historical changes;
+- remove requirements that are no longer valid;
+- do not document implementation details as requirements;
+- preserve important previous milestone specifications
+  as snapshots under `doc/requirements-history/`;
+- use Git history for detailed change history.

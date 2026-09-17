@@ -1,11 +1,8 @@
-# Anforderungen
+# Anforderungen – eingefroren: v0.1 MVP
 
-Status: bestätigt (v0.2), Stand 2026-09-17. Ursprünglich bestätigt in Roadmap-Schritt 6 als
-v0.1-MVP – dieser Stand ist eingefroren unter
-[`requirements-history/requirements-v0.1-mvp.md`](requirements-history/requirements-v0.1-mvp.md).
-Der Domain-Modell-Refactor (`Artist`/`Stage`/`Act` statt `ProgramItem`, siehe
-[`domain-model.md`](domain-model.md) und [`architecture.md`](architecture.md)) ist eine
-Architekturentscheidung und ändert diese Anforderungen inhaltlich nicht.
+Snapshot des bestätigten Anforderungsstands aus Roadmap-Schritt 6 (v0.1-MVP), vor dem
+Domain-Modell-Refactor (`Artist`/`Stage`/`Act`, v0.2). Nur zur historischen Referenz –
+maßgeblich ist [`../requirements.md`](../requirements.md).
 
 ## Grundannahme
 
@@ -56,11 +53,8 @@ nicht-funktionale Rahmenbedingungen).
 | T3 | Die „aktuelle Zeit" für F3 wird serverseitig in einer festen Festival-Zeitzone bestimmt: fester Offset UTC+02:00. |
 
 **Erweiterbarkeit (Leitplanke, keine Umsetzung in der aktuellen Version):**
-B4 (vollständige Zeitstempel) hält einen späteren Tagesfilter / Mehrtägigkeit (O1) als reine
-Anzeige-Logik offen – kein Datenmodell-Umbau nötig. Die Trennung in `Artist`/`Stage`/`Act`
-(v0.2) hält zusätzlich weitere Attribute offen (z. B. Genre auf `Artist`, Kapazität auf
-`Stage` – Richtung O2), ebenfalls ohne Umbau von `Act`. Details:
-[`architecture.md`](architecture.md#erweiterungspunkte-nicht-in-der-aktuellen-version).
+B4 (vollständige Zeitstempel) hält einen späteren Tagesfilter / Mehrtägigkeit als reine
+Anzeige-Logik offen – kein Datenmodell-Umbau nötig.
 
 ## Optionale Anforderungen (später)
 

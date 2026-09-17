@@ -1,16 +1,20 @@
 # Architektur & Projektstruktur
 
-Status: Zielstand Refactoring Phase 1 (v0.2), Stand 2026-09-15. Löst die bisherige
-Ein-Datei-Struktur (`db.py` mit Modell + Queries direkt in `main.py`) ab.
+Status: laufend, Stand 2026-09-17. Phase 1 (v0.2) hat die ursprüngliche Ein-Datei-Struktur
+(`db.py` mit Modell + Queries direkt in `main.py`) abgelöst; die Struktur wächst seitdem
+schrittweise mit den Anforderungen weiter, statt auf einem MVP-Stand zu verharren.
 
 Grundlage: [`requirements.md`](requirements.md), [`domain-model.md`](domain-model.md) und die
 Entscheidungen in [`../CLAUDE.md`](../CLAUDE.md) (Festival-Zeitzone UTC+02:00, pytest + httpx
 als Dev-Dependencies).
 
-Leitlinie weiterhin: so klein und verständlich wie möglich. Mit drei Entitäten (`Artist`,
-`Stage`, `Act`) und Joins reicht eine einzige Datei für Modell + Queries + Endpunkte aber nicht
-mehr aus – deshalb kommen `models.py`, `crud.py` und `routers.py` dazu. Weiterhin keine
-Repository-Klassen, kein `schemas.py`, keine `services/`.
+Leitlinie: nicht mehr „so klein wie möglich" (MVP), sondern gut strukturiert und erweiterbar –
+die Struktur nimmt Schritt für Schritt an Komplexität zu, sobald das Projekt es verlangt. Mit
+drei Entitäten (`Artist`, `Stage`, `Act`) und Joins reicht eine einzige Datei für Modell +
+Queries + Endpunkte nicht mehr aus – deshalb kommen `models.py`, `crud.py` und `routers.py`
+dazu. Jede weitere Schicht (Datei, Paket, Klasse) wird eingeführt, sobald sie einen konkreten
+Bedarf löst – nicht spekulativ auf Vorrat, aber auch nicht mehr aus Prinzip vermieden. Siehe
+„Erweiterungspunkte" für absehbare nächste Schritte.
 
 ## Projektstruktur
 
@@ -206,13 +210,17 @@ im Importpfad – daher keine `conftest.py` und keine `pytest.ini` nötig.
   Nicht offensichtlich: In-Memory-SQLite existiert nur pro Verbindung – deshalb mit
   `poolclass=StaticPool`, damit alle Sessions dieselbe Datenbank sehen.
 
-## Bewusst weggelassen
+## Aktuell nicht vorhanden (kein grundsätzliches Verbot mehr, nur noch kein Bedarf)
 
-- `schemas.py`, `services/`, Repository-Klassen – Pydantic-Antwortmodelle bleiben in
-  `routers.py`, `crud.py` besteht aus einfachen Funktionen statt Klassen.
-- `config.py` / `.env` – DB-Pfad und Zeitzone sind Konstanten im Code
-- Alembic-Migrationen
-- Jinja-Templates, npm/Build-Tooling, `src/`-Layout, Docker, `conftest.py`
+- `schemas.py`, `services/`, Repository-Klassen, Paket-Split (`app/api/`, `app/domain/`,
+  `app/infra/`, …) – bei 7 flachen Modulen noch kein klarer Vorteil; siehe
+  „Erweiterungspunkte" für die Bedingungen, unter denen das sinnvoll wird.
+- `config.py` / `.env` – DB-Pfad und Zeitzone sind Konstanten im Code; kommt mit
+  produktionsnahen Anforderungen (mehrere Umgebungen, Secrets).
+- Alembic-Migrationen – kommt, sobald Schemaänderungen nicht mehr per Löschen und
+  Neu-Seeden gelöst werden sollen (z. B. produktive Daten, die erhalten bleiben müssen).
+- Jinja-Templates, npm/Build-Tooling, Docker, `conftest.py` – kommen mit den jeweiligen
+  Anforderungen (serverseitiges Rendering, Frontend-Build, Deployment, wachsende Testsuite).
 
 ## Erweiterungspunkte (nicht in der aktuellen Version)
 
@@ -222,3 +230,9 @@ im Importpfad – daher keine `conftest.py` und keine `pytest.ini` nötig.
 - **Tagesfilter (O1):** zusätzlicher Query-Parameter in `/api/program`, kein Schema-Umbau.
 - **Weitere Attribute:** Genre auf `Artist`, Kapazität/Standort auf `Stage` – durch die
   Entitätstrennung jetzt ohne Umbau von `Act` möglich (siehe `domain-model.md`).
+- **Paket-Split (`app/api/`, `app/domain/`, `app/infra/`, …):** sinnvoll, sobald einzelne
+  Module wachsen (z. B. mehrere Router-Dateien, mehrere Domain-Module) oder neue fachliche
+  Bereiche dazukommen. Die heutige Verantwortlichkeiten-Tabelle oben ist bereits die
+  Layer-Zuordnung (`main.py` = Composition Root, `routers.py` = API, `crud.py` = Data Access,
+  `models.py`/`schedule.py` = Domain, `db.py` = Infrastruktur) – ein Split würde bestehende
+  Dateien nur in Unterpakete gruppieren, ohne ihre Verantwortung zu ändern.
