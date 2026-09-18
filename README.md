@@ -284,3 +284,6 @@ Wir wollen nachvollziehen, wie aus einer zunächst einfachen Idee Schritt für S
 **Idee → Anforderungen → Planung → Architektur → Implementierung → Tests → Verbesserung**
 
 Dabei untersuchen wir insbesondere, an welchen Stellen AI-Unterstützung hilfreich ist und wo weiterhin Software-Engineering-Entscheidungen notwendig sind.
+
+## Claude Artifact
+[Claude Artifact](https://claude.ai/artifact/NQw23WBkEX6NShoPfbbmfq)
