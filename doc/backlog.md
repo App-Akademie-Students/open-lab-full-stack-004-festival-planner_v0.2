@@ -1,8 +1,15 @@
 # Backlog
 
-Status: v0.1 bestätigt und umgesetzt (Roadmap-Schritt 9). v0.2 (Refactoring Phase 1,
-Datenbank-Fokus, T-1 bis T-9) ist umgesetzt – siehe Abschnitt „v0.2 – Refactoring Phase 1"
-unten. Offen: Testen und Reviewen (Roadmap-Schritt 22).
+Status: Stand 2026-09-18. v0.1 bestätigt und umgesetzt (Roadmap-Schritt 9). v0.2 ist
+umgesetzt, in zwei Phasen: Refactoring Phase 1 (T-1 bis T-9, `Artist`/`Stage`/`Act` statt
+`ProgramItem`) und Refactoring Phase 2 (T-10 bis T-13, Umstellung von SQLite auf PostgreSQL
+bei Neon) – siehe die beiden Abschnitte unten.
+
+Testen und Reviewen ist für beide Phasen erledigt und in [`review.md`](review.md)
+freigegeben: Phase 1 in Abschnitt 6 (Stand 2026-09-16), die PostgreSQL-Umstellung in
+Abschnitt 7 (Stand 2026-09-18). Beide Urteile: „Freigeben mit nicht blockierenden
+Änderungswünschen", keine Blocker. T-19 bis T-21 aus dem Phase-2-Review sind inzwischen
+umgesetzt; offen sind nur noch T-15 bis T-18 im Abschnitt „Offene Punkte aus dem Review".
 
 Abgeleitet aus den Muss-Anforderungen in [`requirements.md`](requirements.md).
 Technischer Rahmen: [`architecture.md`](architecture.md).
@@ -48,7 +55,8 @@ funktionieren, bevor Features gebaut werden.
 > Als **Betreiber** möchte ich das Festivalprogramm per Skript in die Datenbank laden,
 > damit Besucher ohne Admin-Oberfläche echte Programmdaten sehen.
 
-- [x] `python -m app.seed` legt `festival.db` an und füllt ca. 10–15 Programmpunkte auf 3 Bühnen.
+- [x] `python -m app.seed` legt das Schema in der über `DATABASE_URL` konfigurierten Datenbank
+      an und füllt ca. 10–15 Programmpunkte auf 3 Bühnen.
 - [x] Alle Punkte liegen auf dem heutigen Datum (Festival-Zeit) mit vollständigen Zeitstempeln –
       inklusive paralleler Acts auf verschiedenen Bühnen und mindestens zwei Acts mit gleicher Startzeit.
 - [x] Jeder Punkt erfüllt die Invarianten: Titel und Bühne nicht leer, Ende nach Start.
@@ -129,7 +137,9 @@ funktionieren, bevor Features gebaut werden.
 ## v0.2 – Refactoring Phase 1 (Datenbank-Fokus)
 
 Technische Aufgaben ohne direkten Besucher-Nutzen, Voraussetzung für spätere Erweiterungen
-(z. B. Genre auf `Artist`, Kapazität auf `Stage`). Funktionalität und SQLite bleiben erhalten.
+(z. B. Genre auf `Artist`, Kapazität auf `Stage`). Funktionalität und Datenbank bleiben in
+dieser Phase unverändert (damals noch SQLite; die Umstellung auf PostgreSQL erfolgt erst in
+Phase 2, T-10 bis T-13).
 Details und Reihenfolge: [`roadmap.md`](roadmap.md) (Phase 2), technischer Rahmen:
 [`architecture.md`](architecture.md).
 
@@ -147,6 +157,57 @@ Details und Reihenfolge: [`roadmap.md`](roadmap.md) (Phase 2), technischer Rahme
 
 **T-4 – Entscheidung:** API-Vertrag bleibt flach (nicht verschachtelt). Begründung und
 Beispiel: [`architecture.md`](architecture.md#http-api).
+
+## v0.2 – Refactoring Phase 2 (Umstellung auf PostgreSQL)
+
+Ebenfalls technische Aufgaben ohne direkten Besucher-Nutzen: die Datenhaltung wechselt von
+der lokalen SQLite-Datei auf eine gehostete PostgreSQL-Datenbank (Neon). Funktionalität,
+API-Vertrag und Frontend bleiben unverändert. Entscheidung und Begründung:
+[`../CLAUDE.md`](../CLAUDE.md#project-decisions), technischer Rahmen:
+[`architecture.md`](architecture.md#datenbank).
+
+| ID | Titel | Abhängig von | Status |
+|---|---|---|---|
+| T-10 | `DATABASE_URL` aus `.env` laden (`python-dotenv`), Engine auf PostgreSQL umstellen | – | erledigt |
+| T-11 | Treiber `psycopg` (v3): URL-Normalisierung in `db.py`, `requirements.txt` ergänzen | T-10 | erledigt |
+| T-12 | `ends_at > starts_at` zusätzlich als DB-seitige `CheckConstraint` auf `Act` | T-10 | erledigt |
+| T-13 | Doku nachziehen (`requirements.md` B2/T1, `domain-model.md`, `architecture.md`, `CLAUDE.md`, Backlog, Roadmap) | T-11, T-12 | erledigt |
+| T-14 | Review-Nachtrag zur Umstellung in [`review.md`](review.md) ergänzen | T-13 | erledigt |
+
+**T-10 bis T-12 – Entscheidungen:** `.env` ist nicht eingecheckt (siehe `.gitignore`); eine
+`postgresql://`-URL wird in `db.py` auf `postgresql+psycopg://` normalisiert, weil SQLAlchemy
+sonst `psycopg2` erwartet. Tests laufen weiterhin gegen In-Memory-SQLite, nicht gegen Neon.
+
+## Offene Punkte aus dem Review (nicht blockierend)
+
+Aus [`review.md`](review.md) (Abschnitte 2–4 und Nachtrag). Keiner dieser Punkte verletzt eine
+Muss-Anforderung; sie sind hier nur festgehalten, damit sie nicht verloren gehen.
+
+Aus Abschnitt 6 (Phase 1):
+
+| ID | Titel | Status |
+|---|---|---|
+| T-15 | TODO `# TODO move to rest_schema.py` in `app/routers.py` klären – widerspricht der dokumentierten „kein `schemas.py`"-Entscheidung; entweder entfernen oder als neue Entscheidung in `architecture.md` dokumentieren | offen |
+| T-16 | Test-Overrides in `tests/test_api.py` von Modulebene in eine Fixture mit Teardown überführen | offen |
+| T-17 | `StaticFiles`-Pfad in `app/main.py` unabhängig vom aktuellen Arbeitsverzeichnis auflösen | offen |
+| T-18 | Invarianten `Artist.name` / `Stage.name` nicht leer als DB-`CheckConstraint` (analog T-12) | offen |
+
+Aus Abschnitt 7 (PostgreSQL-Umstellung) – alle drei umgesetzt am 2026-09-18:
+
+| ID | Titel | Status |
+|---|---|---|
+| T-19 | Fehlende `DATABASE_URL` klar melden statt `KeyError`: `app/db.py` prüft die Variable und bricht mit Hinweis auf `.env` ab. Wichtig, weil ohne `.env` auch `python -m pytest` beim Collect abbricht – obwohl die Tests nur In-Memory-SQLite brauchen | erledigt |
+| T-20 | `create_engine(..., pool_pre_ping=True)` gegen abgestandene Verbindungen nach Neons Idle-Suspend | erledigt |
+| T-21 | Test für die `CheckConstraint` `ends_at > starts_at` (läuft auch unter In-Memory-SQLite) | erledigt |
+
+**Hinweis (keine Aufgabe):** Da `app/seed.py` per `DELETE` löscht, laufen die
+PostgreSQL-Sequenzen beim Neu-Seeden weiter – die `id`-Werte beginnen also nicht wieder bei 1
+wie früher unter SQLite. Rein kosmetisch (IDs sind technisch und werden im Frontend nicht
+genutzt); falls doch gewünscht: `TRUNCATE ... RESTART IDENTITY`. Details in
+[`review.md`](review.md), Abschnitt 7.
+
+Langfristig, ohne aktuellen Bedarf: `create_all` beim App-Start durch Migrationen ersetzen
+(siehe „Aktuell nicht vorhanden" in [`architecture.md`](architecture.md)).
 
 ## Bewusst nicht im Backlog
 

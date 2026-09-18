@@ -1,11 +1,14 @@
 # Anforderungen
 
-Status: bestätigt (v0.2), Stand 2026-09-17. Ursprünglich bestätigt in Roadmap-Schritt 6 als
+Status: bestätigt (v0.2), Stand 2026-09-18. Ursprünglich bestätigt in Roadmap-Schritt 6 als
 v0.1-MVP – dieser Stand ist eingefroren unter
-[`requirements-history/requirements-v0.1-mvp.md`](requirements-history/requirements-v0.1-mvp.md).
+[`requirements-history/requirements-v0.1-mvp.md`](requirements-history/requirements-v0.1-mvp.md)
+und enthält noch die SQLite-Fassung von B2 und T1.
 Der Domain-Modell-Refactor (`Artist`/`Stage`/`Act` statt `ProgramItem`, siehe
 [`domain-model.md`](domain-model.md) und [`architecture.md`](architecture.md)) ist eine
-Architekturentscheidung und ändert diese Anforderungen inhaltlich nicht.
+Architekturentscheidung und ändert diese Anforderungen inhaltlich nicht. Inhaltlich geändert
+hat sich in v0.2 dagegen die Datenhaltung: B2 und T1 verlangen jetzt PostgreSQL statt SQLite
+(Entscheidung und Begründung in [`../CLAUDE.md`](../CLAUDE.md#project-decisions)).
 
 ## Grundannahme
 
@@ -43,7 +46,7 @@ nicht-funktionale Rahmenbedingungen).
 | #  | Anforderung |
 |----|-------------|
 | B1 | Eine HTTP-API liefert die Programmpunkte, chronologisch sortiert und optional nach Bühne gefiltert. |
-| B2 | Die Programmdaten werden in SQLite (über SQLAlchemy) gespeichert. |
+| B2 | Die Programmdaten werden in einer PostgreSQL-Datenbank (über SQLAlchemy) gespeichert. Die Verbindung ist konfigurierbar und nicht im Code verdrahtet. |
 | B3 | Ein Seed-Skript befüllt die Datenbank initial. |
 | B4 | Zeiten werden als vollständige Zeitstempel (Datum + Uhrzeit) gespeichert, nicht nur als Uhrzeit. |
 
@@ -51,7 +54,7 @@ nicht-funktionale Rahmenbedingungen).
 
 | #  | Anforderung |
 |----|-------------|
-| T1 | Stack ausschließlich: FastAPI, SQLAlchemy, SQLite, HTML, Vanilla JS – keine weiteren Frameworks oder Dependencies. Ausnahme: pytest + httpx als reine Dev-Dependencies für Tests. |
+| T1 | Stack ausschließlich: FastAPI, SQLAlchemy, PostgreSQL, HTML, Vanilla JS – keine weiteren Frameworks oder Dependencies. Für den Datenbankzugriff und die Konfiguration kommen `psycopg` (v3) und `python-dotenv` hinzu. Ausnahme: pytest + httpx als reine Dev-Dependencies für Tests. |
 | T2 | Die Anwendung ist lokal als ein Prozess startbar (uvicorn). |
 | T3 | Die „aktuelle Zeit" für F3 wird serverseitig in einer festen Festival-Zeitzone bestimmt: fester Offset UTC+02:00. |
 

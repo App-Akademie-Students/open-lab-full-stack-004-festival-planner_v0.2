@@ -1,8 +1,10 @@
 # Architektur & Projektstruktur
 
-Status: laufend, Stand 2026-09-17. Phase 1 (v0.2) hat die ursprüngliche Ein-Datei-Struktur
+Status: laufend, Stand 2026-09-18. Phase 1 (v0.2) hat die ursprüngliche Ein-Datei-Struktur
 (`db.py` mit Modell + Queries direkt in `main.py`) abgelöst; die Struktur wächst seitdem
-schrittweise mit den Anforderungen weiter, statt auf einem MVP-Stand zu verharren.
+schrittweise mit den Anforderungen weiter, statt auf einem MVP-Stand zu verharren. Phase 2
+(v0.2) hat die Datenhaltung von SQLite auf PostgreSQL (Neon) umgestellt – ohne Änderung an
+Modellen, API-Vertrag oder Frontend.
 
 Grundlage: [`requirements.md`](requirements.md), [`domain-model.md`](domain-model.md) und die
 Entscheidungen in [`../CLAUDE.md`](../CLAUDE.md) (Festival-Zeitzone UTC+02:00, pytest + httpx
@@ -24,7 +26,7 @@ festival-planner/
 │   ├── __init__.py        leer – macht app/ zum importierbaren Paket
 │   ├── main.py            FastAPI-App: Objekt, Lifespan (init_db), bindet routers.py + static/ ein
 │   ├── models.py          ORM-Modelle: Artist, Stage, Act (siehe domain-model.md)
-│   ├── db.py              Datenbank-Infrastruktur: Engine, Session, init_db(), get_db()
+│   ├── db.py              Datenbank-Infrastruktur: DATABASE_URL aus .env, Engine, Session, init_db(), get_db()
 │   ├── crud.py            Queries: Bühnenliste, Programmliste (Joins über Artist/Stage)
 │   ├── routers.py         API-Endpunkte: GET /api/program, GET /api/stages
 │   ├── schedule.py        Business-Logik: Festival-Zeit, „läuft jetzt" / „als Nächstes"
@@ -35,19 +37,22 @@ festival-planner/
 │   └── app.js             API abrufen, Liste rendern, Bühnenfilter
 ├── tests/
 │   ├── test_schedule.py   Unit-Tests der Business-Logik (ohne DB, ohne HTTP)
-│   └── test_api.py        wenige API-Tests (TestClient + In-Memory-SQLite)
-├── requirements.txt       Laufzeit: fastapi, uvicorn[standard], sqlalchemy
+│   ├── test_models.py     DB-seitige Invarianten der Modelle (In-Memory-SQLite)
+│   └── test_api.py        wenige API-Tests (TestClient + In-Memory-SQLite, nicht Neon)
+├── .env                   DATABASE_URL (nicht eingecheckt)
+├── requirements.txt       Laufzeit: fastapi, uvicorn[standard], sqlalchemy, psycopg[binary], python-dotenv
 └── requirements-dev.txt   -r requirements.txt + pytest + httpx
 ```
 
-`festival.db` entsteht zur Laufzeit im Projektordner und ist per `*.db` von Git ausgeschlossen.
+Die Programmdaten liegen in einer PostgreSQL-Datenbank bei Neon; es entsteht keine lokale
+Datenbankdatei mehr. `.env` mit der `DATABASE_URL` ist per `.gitignore` von Git ausgeschlossen.
 
 ## Verantwortlichkeiten
 
 | Datei | Verantwortung | Abhängig von |
 |---|---|---|
 | `app/models.py` | ORM-Modelle `Artist`, `Stage`, `Act` inkl. `relationship()` (siehe `domain-model.md`). | SQLAlchemy, `db.Base` |
-| `app/db.py` | SQLite-Pfad, Engine, Session-Factory, FastAPI-Dependency `get_db()`, `Base`, `init_db()` (Tabellen anlegen). Reine Infrastruktur, kein Modell mehr. | SQLAlchemy |
+| `app/db.py` | `DATABASE_URL` aus `.env` laden und auf den `psycopg`-Treiber normalisieren, Engine, Session-Factory, FastAPI-Dependency `get_db()`, `Base`, `init_db()` (Tabellen anlegen). Reine Infrastruktur, kein Modell mehr. | SQLAlchemy, `psycopg`, `python-dotenv` |
 | `app/crud.py` | Queries als einfache Funktionen: Bühnenliste (sortiert), Programmliste (`Act` mit Join auf `Artist`/`Stage`, sortiert, optional nach Bühne gefiltert). | `models`, `db` (Session) |
 | `app/routers.py` | Die zwei API-Endpunkte, Pydantic-Antwortmodelle; ruft `crud.py` für die Daten und `schedule.py` für den Status auf. | `crud`, `schedule`, FastAPI |
 | `app/schedule.py` | `FESTIVAL_TZ`, `festival_now()` und reine Funktion(en), die Acts anhand eines übergebenen Zeitpunkts einen Status zuordnen. | nur `datetime` – **kein** FastAPI, **keine** Session |
@@ -70,7 +75,7 @@ festival-planner/
 Ablauf einer Anfrage:
 
 ```text
-app.js ──GET /api/program?stage=X──▶ routers.py ──ruft auf──▶ crud.py ──select+join──▶ db.py (SQLite)
+app.js ──GET /api/program?stage=X──▶ routers.py ──ruft auf──▶ crud.py ──select+join──▶ db.py (PostgreSQL/Neon)
                                           │
                                           └──items + now──▶ schedule.py ──status──▶ JSON
 ```
@@ -169,19 +174,40 @@ ohne Tricks testbar.
 
 - `FESTIVAL_TZ` ist der feste Offset UTC+02:00 (Entscheidung in `CLAUDE.md`).
 - Zeitstempel werden **naiv in Festival-Ortszeit** gespeichert (ohne Zeitzonen-Info).
-  SQLite speichert ohnehin keine Zeitzone, und die Seed-Daten bleiben lesbar.
+  Die Spalten sind `DateTime` ohne `timezone=True`, in PostgreSQL also
+  `timestamp without time zone`; damit bleiben die Seed-Daten lesbar und es gibt keine
+  implizite Umrechnung.
 - `festival_now()` liefert passend dazu die aktuelle Zeit in UTC+02:00, ebenfalls naiv.
 - In `routers.py` wird `festival_now` als FastAPI-Dependency verwendet. Tests ersetzen sie über
   `app.dependency_overrides` durch einen festen Zeitpunkt.
 
 ## Datenbank
 
+- **PostgreSQL, gehostet bei Neon** (seit v0.2 Phase 2, vorher eine lokale SQLite-Datei).
+  Treiber ist `psycopg` (v3).
+- Die Verbindung kommt aus `DATABASE_URL` in `.env` und wird in `db.py` per `python-dotenv`
+  geladen – nicht im Code verdrahtet (B2). `.env` ist nicht eingecheckt.
+- Fehlt die Variable, bricht `db.py` beim Import mit einem `RuntimeError` ab, der `.env` und
+  das erwartete Format nennt. Bewusst **kein** stiller SQLite-Fallback: der würde eine
+  Fehlkonfiguration im Betrieb verdecken.
+- `pool_pre_ping=True` an der Engine: Neon fährt die Compute-Instanz im Leerlauf herunter, und
+  im Pool bleiben dann tote Verbindungen liegen. Ohne den Check scheitert der erste Request
+  nach einer Pause; mit ihm verwirft SQLAlchemy die Verbindung und baut eine neue auf.
+- Nicht offensichtlich: `load_dotenv()` sucht die `.env` **datei-relativ** (aufwärts ab
+  `app/db.py`), nicht im Arbeitsverzeichnis – der Start aus einem anderen Ordner funktioniert
+  also. Ausnahme: im REPL, unter einem Debugger oder bei `python -c` fällt python-dotenv auf
+  das aktuelle Arbeitsverzeichnis zurück; dann wird die `.env` nur dort gefunden.
+- Nicht offensichtlich: Eine `postgresql://`-URL wird in `db.py` auf `postgresql+psycopg://`
+  normalisiert. SQLAlchemy erwartet bei der kurzen Form sonst `psycopg2`, das nicht
+  installiert ist.
 - Drei Tabellen für `Artist`, `Stage`, `Act` (siehe `domain-model.md`), angelegt per
   `Base.metadata.create_all` in `init_db()` – beim App-Start und im Seed-Skript.
+- Datenintegrität: `ends_at > starts_at` ist als `CheckConstraint` auf `Act` DB-seitig
+  erzwungen, nicht nur in der Business-Logik.
 - Keine Migrationen: Bei Schemaänderungen wird die Datenbank gelöscht und neu geseedet.
-- Nicht offensichtlich: Die Engine braucht `connect_args={"check_same_thread": False}`, weil
-  FastAPI synchrone Endpunkte in einem Threadpool ausführt und SQLite Verbindungen sonst an
-  einen Thread bindet.
+- `connect_args={"check_same_thread": False}` ist mit dem Wechsel weggefallen – das war eine
+  reine SQLite-Eigenheit. In `tests/test_api.py` steht es weiterhin, weil die Tests eine
+  In-Memory-SQLite-DB verwenden.
 
 ## Seed-Daten
 
@@ -204,8 +230,21 @@ im Importpfad – daher keine `conftest.py` und keine `pytest.ini` nötig.
 
 - `tests/test_schedule.py` – der Schwerpunkt: Statusregeln inkl. Randfällen (genau
   Start-/Endzeitpunkt, parallele Acts, gleiche Startzeiten, nichts mehr kommt, gefilterte Liste).
+- `tests/test_models.py` – die DB-seitige Invariante `ends_at > starts_at` (`CheckConstraint`):
+  Ende nach Start wird angenommen, Ende vor Start und Ende gleich Start werden mit
+  `IntegrityError` abgelehnt. Eigene Engine pro Test (Fixture), kein `TestClient`. Läuft unter
+  In-Memory-SQLite, weil SQLite CHECK-Constraints ebenfalls durchsetzt.
 - `tests/test_api.py` – wenige Tests: Sortierung, Bühnenfilter, Bühnenliste, `status` im JSON.
-  Nutzt In-Memory-SQLite und ersetzt `get_db` und `festival_now` per `dependency_overrides`.
+  Nutzt In-Memory-SQLite – bewusst **nicht** die PostgreSQL-Datenbank: die Tests laufen so
+  ohne Netzwerk und hinterlassen keine Daten in Neon. Der Preis: die migrierte
+  Infrastrukturschicht (URL-Normalisierung, psycopg-Verbindung, PostgreSQL-spezifisches
+  Verhalten) wird dadurch nicht abgedeckt. Ersetzt `get_db` und `festival_now` per
+  `dependency_overrides`.
+  Nicht offensichtlich: Eine gesetzte `DATABASE_URL` brauchen die Tests trotzdem. Sie
+  importieren `Base`/`get_db` aus `app.db`, und `db.py` prüft die Variable beim Import – ohne
+  `.env` bricht `python -m pytest` deshalb schon beim Collect ab, allerdings mit einer klaren
+  Meldung (siehe „Datenbank"). Eine Verbindung wird dabei nicht aufgebaut, `create_engine`
+  verbindet erst bei Bedarf.
   Fixtures legen jetzt erst `Artist`- und `Stage`-Zeilen an und referenzieren sie aus `Act`.
   Nicht offensichtlich: In-Memory-SQLite existiert nur pro Verbindung – deshalb mit
   `poolclass=StaticPool`, damit alle Sessions dieselbe Datenbank sehen.
@@ -215,8 +254,9 @@ im Importpfad – daher keine `conftest.py` und keine `pytest.ini` nötig.
 - `schemas.py`, `services/`, Repository-Klassen, Paket-Split (`app/api/`, `app/domain/`,
   `app/infra/`, …) – bei 7 flachen Modulen noch kein klarer Vorteil; siehe
   „Erweiterungspunkte" für die Bedingungen, unter denen das sinnvoll wird.
-- `config.py` / `.env` – DB-Pfad und Zeitzone sind Konstanten im Code; kommt mit
-  produktionsnahen Anforderungen (mehrere Umgebungen, Secrets).
+- `config.py` – `.env` gibt es inzwischen (`DATABASE_URL`), aber nur eine einzige Variable,
+  direkt in `db.py` gelesen; ein eigenes Konfigurationsmodul lohnt sich erst bei mehreren
+  Werten oder mehreren Umgebungen. Die Zeitzone bleibt eine Konstante im Code.
 - Alembic-Migrationen – kommt, sobald Schemaänderungen nicht mehr per Löschen und
   Neu-Seeden gelöst werden sollen (z. B. produktive Daten, die erhalten bleiben müssen).
 - Jinja-Templates, npm/Build-Tooling, Docker, `conftest.py` – kommen mit den jeweiligen

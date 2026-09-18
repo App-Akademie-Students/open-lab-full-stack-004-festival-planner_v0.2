@@ -218,3 +218,171 @@ funktional gleichwertig (API-Vertrag, Frontend, Zeitzonen- und Statusregeln unve
 durch die grüne Testsuite sowie manuelle Live-Prüfung abgesichert. Einziger nennenswerter neuer
 Punkt ist das TODO in `routers.py`, das der dokumentierten „kein `schemas.py`“-Entscheidung
 widerspricht und vor einer Umsetzung geklärt werden sollte. Keine Blocker für Roadmap-Schritt 22.
+
+## 7. Nachtrag – Refactoring Phase 2: Umstellung auf PostgreSQL (v0.2, T-10 bis T-13), Stand 2026-09-18
+
+Unabhängiges Review der Datenbank-Umstellung (Backlog `doc/backlog.md`, Abschnitt „v0.2 –
+Refactoring Phase 2") gegen `doc/requirements.md` (B2, T1), `doc/architecture.md` (Abschnitt
+„Datenbank") und die Entscheidung in `CLAUDE.md`. Geprüfter Änderungsumfang ist der Commit
+`77d7b0e`: `app/db.py`, `app/models.py`, `requirements.txt` – sonst kein Produktivcode.
+
+Verifikation:
+
+* `python -m pytest` – **15 passed** (dieselben 2 harmlosen Deprecation-Warnings wie zuvor).
+* Lesende Live-Prüfung gegen die konfigurierte Neon-Datenbank (nur `SELECT`, kein DDL, keine
+  Writes): Serverversion PostgreSQL 18.6, Tabellen `acts`, `artists`, `stages`,
+  `ck_acts_ends_after_starts` in `pg_constraint` vorhanden, `acts.starts_at` ist
+  `timestamp without time zone`, `acts.id` hat `nextval('acts_id_seq')` als Default.
+* Messungen gegen dieselbe Datenbank: `init_db()` beim Kaltstart 0,39 s;
+  `crud.list_program` 21–53 ms, `crud.list_stages` 18–30 ms (je 5 Läufe).
+
+### Erfüllung der Akzeptanzkriterien T-10 bis T-13
+
+- **T-10 – erfüllt.** `app/db.py:8-10` lädt `.env` per `load_dotenv()` und liest
+  `DATABASE_URL`; im Code steht keine Verbindung mehr fest verdrahtet (B2). `.env` ist per
+  `.gitignore:14` ausgeschlossen, **nicht** getrackt und war auch nie committed (geprüft mit
+  `git ls-files .env` und `git log --all -- .env`, beide leer) – es liegt also kein Zugangsdatum
+  in der Git-History.
+- **T-11 – erfüllt.** `app/db.py:12-13` normalisiert eine `postgresql://`-URL auf
+  `postgresql+psycopg://`. Die Umsetzung ist minimal und präzise: der `startswith`-Guard und
+  `replace(..., 1)` lassen eine bereits explizite `postgresql+psycopg://`-URL sowie
+  `sqlite://`-URLs unangetastet. Live verifiziert: die `.env` enthält die kurze Form (kein
+  Treffer für `postgresql+psycopg`), die Engine verbindet sich trotzdem über psycopg 3.3.5.
+- **T-12 – erfüllt.** `app/models.py:39-41` erzwingt `ends_at > starts_at` als
+  `CheckConstraint`; in der Live-Datenbank ist `ck_acts_ends_after_starts` angelegt. Damit ist
+  der ⚠️-Punkt „Domain-Invarianten nicht technisch erzwungen" aus Abschnitt 2 für die
+  Zeitinvariante erledigt (für `Artist.name`/`Stage.name` weiterhin offen, siehe T-18).
+- **T-13 – erfüllt.** `requirements.md` (B2, T1), `domain-model.md`, `architecture.md`,
+  `CLAUDE.md`, `backlog.md` und `roadmap.md` nennen jetzt durchgängig PostgreSQL; die
+  SQLite-Fassung von B2/T1 bleibt über `requirements-history/requirements-v0.1-mvp.md`
+  nachvollziehbar.
+
+### Findings
+
+- ✅ **`check_same_thread` korrekt entfernt.** Das war eine reine SQLite-Eigenheit. Nicht nur
+  überflüssig, sondern ein echter Fehler, wäre es stehen geblieben – verifiziert: mit
+  `connect_args={"check_same_thread": False}` antwortet der Treiber mit
+  `psycopg.ProgrammingError: invalid connection option "check_same_thread"`. Die Zeile musste
+  also weg, und der zugehörige Kommentar ist konsequent mitentfernt worden.
+- ✅ **Zeitmodell unverändert.** Die Spalten sind `DateTime` ohne `timezone=True` und landen in
+  PostgreSQL als `timestamp without time zone` (live geprüft). Damit gilt die dokumentierte
+  Regel „naiv in Festival-Ortszeit" unverändert und es gibt keine implizite Umrechnung – die
+  Stelle, an der eine solche Migration am ehesten stillschweigend Zeiten verschiebt, ist
+  richtig gelöst.
+- ✅ **Kein Scope-Creep, API-Vertrag unverändert.** `models.py` (außer dem `CheckConstraint`),
+  `crud.py`, `routers.py`, `schedule.py`, `main.py`, `seed.py` und `static/` sind im
+  Migrations-Commit nicht angefasst; Response-Format und Frontend bleiben gleich. Die
+  Umstellung ist damit tatsächlich auf die Infrastrukturschicht begrenzt, wie in
+  `architecture.md` vorgesehen.
+- ✅ **Keine Altlasten in der Zieldatenbank.** Die Neon-Datenbank enthält ausschließlich
+  `artists`, `stages`, `acts` – keine Reste einer `program_items`-Tabelle.
+- ✅ **Verbindung ist TLS-verschlüsselt.** Client-seitig meldet psycopg `ssl_in_use = True`.
+  Nicht offensichtlich und leicht als Fehlalarm zu lesen: `pg_stat_ssl` meldet für dieselbe
+  Verbindung `ssl = false`, weil Neon TLS am Proxy terminiert und der Backend-Prozess die
+  Verbindung unverschlüsselt sieht. Kein Sicherheitsfinding.
+- ✅ **Antwortzeiten unkritisch.** Die Queries liegen bei 18–53 ms (vorher lokale Datei, also
+  praktisch 0 ms). Für zwei Endpunkte ohne Auto-Refresh ist das nicht spürbar; die
+  Statusberechnung bleibt ohnehin serverseitig und in-memory.
+- ⚠️ **Änderungswunsch (wichtigster Punkt) – fehlende `DATABASE_URL` reißt die Testsuite mit
+  und meldet nur `KeyError`.** `app/db.py:10` liest die Variable per `os.environ[...]` auf
+  Modulebene. `tests/test_api.py:10` importiert `app.db` (für `Base` und `get_db`), obwohl die
+  Tests eine eigene In-Memory-SQLite-Engine benutzen und die PostgreSQL-Verbindung nie
+  brauchen. Verifiziert (Variable entfernt, `load_dotenv` neutralisiert):
+  `ERROR tests/test_api.py - KeyError: 'DATABASE_URL'`, Abbruch bereits beim Collect. Ohne
+  `.env` ist also nicht nur der Start, sondern auch `python -m pytest` blockiert – und die
+  Meldung nennt weder `.env` noch die nötige Variable. Empfehlung (kein Blocker): in `db.py`
+  per `os.getenv` prüfen und mit einer klaren Meldung abbrechen („`DATABASE_URL` fehlt – `.env`
+  anlegen, siehe CLAUDE.md"). Ein stiller SQLite-Default wäre die schlechtere Lösung: er würde
+  eine Fehlkonfiguration im Betrieb verdecken.
+- ⚠️ **Änderungswunsch – `create_all` bei jedem App-Start geht jetzt über das Netz.**
+  `init_db()` im Lifespan war bei einer lokalen Datei gratis; jetzt braucht jeder Start eine
+  erreichbare Datenbank (gemessen 0,39 s kalt) und die Anwendungsrolle DDL-Rechte. Für den
+  Kurskontext in Ordnung und in `architecture.md` so dokumentiert. Sobald es Richtung Betrieb
+  geht, gehört das Anlegen des Schemas in das Seed-Skript bzw. zu Migrationen, nicht in den
+  App-Start.
+- ⚠️ **Risiko (nicht reproduziert) – kein `pool_pre_ping`.** `create_engine(DATABASE_URL)`
+  (`app/db.py:15`) nutzt den Default-Pool ohne Liveness-Check. Neon fährt die Compute-Instanz
+  nach Leerlauf herunter; SQLAlchemy kann danach eine abgestandene Verbindung aus dem Pool
+  ziehen, was den ersten Request nach einer Pause mit einem Verbindungsfehler scheitern lässt.
+  Im Review nicht reproduziert – dazu müsste die Instanz erst lange genug idlen –, aber es ist
+  die typische Stolperstelle bei serverlosem PostgreSQL. Absicherung ist eine Zeile:
+  `create_engine(DATABASE_URL, pool_pre_ping=True)`.
+- ⚠️ **Verhaltensunterschied zu SQLite – ID-Sequenzen laufen beim Neu-Seeden weiter.**
+  `app/seed.py:55-57` löscht per `DELETE`; in PostgreSQL setzt das die `SERIAL`-Sequenz nicht
+  zurück. Live sichtbar: `acts` hat 14 Zeilen bei `max(id) = 15`, `stages` 3 Zeilen bei
+  `max(id) = 4`. Unter SQLite begannen die IDs nach dem Löschen wieder bei 1. Das
+  Akzeptanzkriterium von US-1 („Erneutes Ausführen ersetzt die Daten, keine Duplikate") ist
+  weiterhin erfüllt, und die IDs sind rein technisch (das Frontend nutzt sie nicht) – es ist
+  also kosmetisch. Wer stabile IDs erwartet (z. B. in einer Demo oder einem späteren Test auf
+  `id == 1`), stolpert hier. Falls gewünscht: `TRUNCATE ... RESTART IDENTITY` statt `DELETE`.
+- ⚠️ **Testlücke – die neue `CheckConstraint` ist nicht getestet.** T-12 ist die einzige
+  fachlich wirksame Änderung des Commits und durch keinen Test abgedeckt. Sie lässt sich im
+  bestehenden Setup prüfen: verifiziert, dass auch SQLite CHECK-Constraints durchsetzt – ein
+  `Act` mit `ends_at < starts_at` scheitert dort mit `IntegrityError`. Ein kleiner Test (in
+  `tests/test_api.py` oder einem neuen `tests/test_models.py`) würde die Invariante festnageln,
+  ohne Neon zu berühren.
+- ⚠️ **Bekannte Grenze der Teststrategie.** Die Tests laufen bewusst gegen In-Memory-SQLite
+  (kein Netz, keine Daten in Neon). Der Preis ist, dass genau die migrierte Schicht ungetestet
+  bleibt: URL-Normalisierung, psycopg-Verbindung und PostgreSQL-spezifisches Verhalten. Das ist
+  für dieses Projekt eine vertretbare Entscheidung, sollte aber bewusst so getragen werden – ein
+  Fehler in `db.py:12-13` fällt erst beim manuellen Start auf, nicht in der Suite.
+- ⚠️ **Weiterhin offen aus den Abschnitten 2 und 6** (unverändert durch diese Migration):
+  TODO in `app/routers.py:15` (T-15), Test-Overrides auf Modulebene in `tests/test_api.py:36,39`
+  (T-16), CWD-relativer `StaticFiles`-Pfad (T-17), `name`-Invarianten ohne `CheckConstraint`
+  (T-18), doppelte Leerzeile in `app/crud.py`.
+- ⚠️ **Kosmetisch.** `requirements.txt` endet ohne Zeilenumbruch und pinnt keine Versionen
+  (unverändert zu v0.1, bei einer gehosteten DB aber etwas relevanter). `.gitignore` schließt
+  weiterhin `*.db`/`*.sqlite*` aus – harmlos, da die Tests nur In-Memory arbeiten.
+
+Keine ❌-Blocker gefunden.
+
+### Nicht offensichtlich, fürs Protokoll
+
+`load_dotenv()` ohne Argument sucht `.env` **datei-relativ**: python-dotenv läuft vom Frame des
+Aufrufers (`app/db.py`) aus die Verzeichnisse nach oben. Der Start aus einem fremden
+Arbeitsverzeichnis findet die `.env` also weiterhin – anders als der CWD-relative
+`StaticFiles`-Pfad (T-17). Ausnahme: im REPL, unter einem Debugger (`sys.gettrace()` gesetzt)
+oder bei `python -c` fällt python-dotenv auf das aktuelle Arbeitsverzeichnis zurück; dann wird
+die `.env` nur gefunden, wenn dieses der Projektordner ist. Beim Debuggen aus einem anderen
+Verzeichnis äußert sich das als `KeyError: 'DATABASE_URL'`.
+
+### Gesamturteil (Nachtrag Phase 2)
+
+**Freigeben mit (nicht blockierenden) Änderungswünschen.**
+
+Die Umstellung ist sauber begrenzt: drei Dateien, keine Änderung an Modellen, API-Vertrag oder
+Frontend, und die beiden fehleranfälligen Punkte einer solchen Migration – Zeitzonen-Semantik
+und der Treiberwechsel – sind korrekt gelöst und live verifiziert. B2 und T1 in der neuen
+Fassung sind erfüllt, Zugangsdaten liegen nicht in der Git-History. Die Testsuite ist grün,
+deckt die migrierte Schicht aber nicht ab.
+
+Der wichtigste Änderungswunsch ist die harte `KeyError`-Kopplung an `DATABASE_URL`, die ohne
+`.env` auch das Testen blockiert; danach kommen `pool_pre_ping` als Absicherung gegen Neons
+Idle-Suspend und ein Test für die neue `CheckConstraint`. Alle drei sind kleine, lokale
+Änderungen und im Backlog als T-19 bis T-21 festgehalten. Keine Blocker; T-14 ist mit diesem
+Nachtrag erledigt.
+
+### Nachtrag zum Nachtrag – Umsetzung von T-19 bis T-21, Stand 2026-09-18
+
+Die drei Änderungswünsche des Gesamturteils sind unmittelbar nach diesem Review umgesetzt und
+verifiziert worden:
+
+- **T-19 erledigt.** `app/db.py:10-17` liest die Variable per `os.getenv` und bricht sonst mit
+  einem `RuntimeError` ab, der `.env`, das erwartete URL-Format und die Fundstelle in
+  `CLAUDE.md` nennt. Verifiziert (Variable entfernt, `load_dotenv` neutralisiert): Import und
+  `python -m pytest` melden jetzt genau diesen Text statt `KeyError: 'DATABASE_URL'`. Ein
+  stiller SQLite-Fallback wurde bewusst nicht eingebaut – er würde eine Fehlkonfiguration im
+  Betrieb verdecken. Die Tests brauchen damit weiterhin eine gesetzte `DATABASE_URL`
+  (unverändert, aber jetzt selbsterklärend); eine echte Entkopplung würde `Base` aus `db.py`
+  herauslösen und ist für den aktuellen Bedarf zu viel Struktur.
+- **T-20 erledigt.** `app/db.py:26` erzeugt die Engine mit `pool_pre_ping=True`; der Kommentar
+  nennt Neons Idle-Suspend als Grund. Live verifiziert: `engine.pool._pre_ping is True`, die
+  Query-Zeiten bleiben unverändert bei 21–43 ms (der Check kostet nur beim Entnehmen einer
+  gepoolten Verbindung).
+- **T-21 erledigt.** Neu: `tests/test_models.py` mit drei Fällen – Ende nach Start wird
+  angenommen, Ende vor Start und Ende gleich Start scheitern mit `IntegrityError`. Damit ist
+  die Grenze `>` statt `>=` mitgeprüft. Eigene Engine pro Test über eine Fixture, kein
+  `TestClient`, keine Modulebene-Overrides (also nicht betroffen von T-16).
+
+Suite nach den Änderungen: **18 passed** (vorher 15), keine neuen Warnungen. Die ⚠️-Punkte
+T-15 bis T-18 bleiben unverändert offen.

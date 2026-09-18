@@ -1,11 +1,12 @@
 # Domain Model
 
-Status: Zielstand für Refactoring Phase 1 (v0.2), vereinbart am 2026-09-15. Löst das bisherige
+Status: umgesetzt (v0.2), vereinbart am 2026-09-15, Stand 2026-09-18. Löst das bisherige
 Ein-Entitäten-Modell (`ProgramItem`) ab.
 
 Abgeleitet aus den Muss-Anforderungen in [`requirements.md`](requirements.md) sowie dem Ziel
-von Refactoring Phase 1: `Artist`, `Stage` und `Act` als getrennte Entitäten, Funktionalität
-und SQLite unverändert.
+von Refactoring Phase 1: `Artist`, `Stage` und `Act` als getrennte Entitäten bei unveränderter
+Funktionalität. Das Modell selbst ist unabhängig von der Datenbank; seit Refactoring Phase 2
+liegen die Tabellen in PostgreSQL (Neon) statt in SQLite – am Schema ändert das nichts.
 
 ## Ableitung aus den Anforderungen
 
@@ -15,7 +16,7 @@ und SQLite unverändert.
 | F2 / C3 – Filter nach Bühne | Filter über `Stage`; Bühnenliste ist jetzt eine echte Tabelle statt `SELECT DISTINCT` |
 | F3 / C2 – „läuft jetzt" / „als Nächstes" | weiterhin rein aus `Act.starts_at` / `Act.ends_at` vs. aktueller Zeit berechnet – nichts Zusätzliches zu speichern |
 | B1 – sortierte API | Sortierung über `Act.starts_at`, kein Feld nötig |
-| B2 / B3 – SQLite, Seed | drei Tabellen, die das Seed-Skript füllt (erst `Artist`/`Stage`, dann `Act`) |
+| B2 / B3 – Datenbank, Seed | drei Tabellen, die das Seed-Skript füllt (erst `Artist`/`Stage`, dann `Act`) |
 | B4 – volle Zeitstempel | `Act.starts_at` / `Act.ends_at` als `datetime`, nicht nur `time` |
 | C1 – kein Login | keine User-/Auth-/Favoriten-Entität |
 | C4 – eine Instanz = ein Festival | „Festival" bleibt Konfiguration/Kontext, keine Entität |
@@ -88,14 +89,15 @@ erDiagram
 
 - `Artist.name` und `Stage.name` sind nicht leer.
 - `Stage.name` ist eindeutig (keine zwei Bühnen mit demselben Namen).
-- `Act.ends_at` liegt echt nach `Act.starts_at`.
+- `Act.ends_at` liegt echt nach `Act.starts_at` – zusätzlich DB-seitig als `CheckConstraint`
+  erzwungen, nicht nur in der Business-Logik.
 - Jeder `Act` hat genau einen `Artist` und genau eine `Stage` (Pflicht-FKs, kein optionaler Auftritt ohne Zuordnung).
 - Zeiten werden in einer festen Festival-Zeitzone interpretiert (siehe T3 in `requirements.md`).
 - Überlappungen auf derselben Bühne sind erlaubt – keine Validierung in der aktuellen Version.
 
 ## Was persistent gespeichert wird
 
-- `Artist`-, `Stage`- und `Act`-Zeilen (drei Tabellen in SQLite).
+- `Artist`-, `Stage`- und `Act`-Zeilen (drei Tabellen in der PostgreSQL-Datenbank).
 
 ## Was NICHT gespeichert / nicht modelliert wird
 

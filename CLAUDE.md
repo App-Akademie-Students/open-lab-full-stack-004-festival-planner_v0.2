@@ -10,11 +10,15 @@ Wir entwickeln einen minimalistischen Festival-Planer für Festivalbesucher.
 Phasen und Vorgehen: [`doc/roadmap.md`](doc/roadmap.md).
 User Stories, Priorität und Status: [`doc/backlog.md`](doc/backlog.md).
 
-Stand 2026-09-17: v0.1 (Roadmap-Schritt 9, User Stories US-1 bis US-6) ist umgesetzt. Phase 2
-/ v0.2 (Refactoring, Datenbank-Fokus, T-1 bis T-9) ist ebenfalls umgesetzt: `Artist`, `Stage`,
-`Act` als getrennte Entitäten, Struktur aufgeteilt in `models.py`, `db.py`, `crud.py`,
-`schedule.py`, `routers.py`, `main.py`, `seed.py`. Die Datenbank wurde von SQLite auf
-PostgreSQL (Neon) umgestellt. Offen: Testen und Reviewen (Roadmap-Schritt 22).
+Stand 2026-09-18: v0.1 (Roadmap-Schritt 9, User Stories US-1 bis US-6) ist umgesetzt. v0.2 ist
+ebenfalls umgesetzt, in zwei Phasen: Refactoring Phase 1 (T-1 bis T-9) mit `Artist`, `Stage`,
+`Act` als getrennten Entitäten und der Aufteilung in `models.py`, `db.py`, `crud.py`,
+`schedule.py`, `routers.py`, `main.py`, `seed.py`; Refactoring Phase 2 (T-10 bis T-13) mit der
+Umstellung der Datenbank von SQLite auf PostgreSQL (Neon). Testen und Reviewen
+ist für beide Phasen erledigt und in `doc/review.md` freigegeben (Abschnitt 6 zu Phase 1,
+Abschnitt 7 zur PostgreSQL-Umstellung), beide ohne Blocker. Offen sind nur die nicht
+blockierenden Änderungswünsche aus dem Backlog: T-19 bis T-21 sind umgesetzt, offen sind
+noch T-15 bis T-18.
 
 Ab Phase 2 gilt eine neue Leitlinie für die Architektur: nicht mehr „so klein wie möglich"
 (MVP), sondern gut strukturiert und erweiterbar – die Struktur wächst Schritt für Schritt mit
@@ -50,8 +54,12 @@ Nur für die Entwicklung (bewusste Ausnahme von T1 in `doc/requirements.md`):
   `postgresql+psycopg://` normalisiert, da SQLAlchemy sonst `psycopg2` erwartet, das nicht
   installiert ist. Datenintegrität `ends_at > starts_at` wird zusätzlich als DB-seitige
   `CheckConstraint` auf `Act` erzwungen, nicht nur in der Business-Logik.
-  Tests laufen weiterhin gegen eine In-Memory-SQLite-DB (siehe `tests/test_api.py`), nicht
-  gegen Neon.
+  Fehlt `DATABASE_URL`, bricht `db.py` mit einer erklärenden `RuntimeError`-Meldung ab (kein
+  stiller Fallback). Die Engine nutzt `pool_pre_ping=True`, weil Neon die Compute-Instanz im
+  Leerlauf herunterfährt und sonst der erste Request nach einer Pause an einer toten
+  Pool-Verbindung scheitert.
+  Tests laufen weiterhin gegen eine In-Memory-SQLite-DB (`tests/test_api.py`,
+  `tests/test_models.py`), nicht gegen Neon.
 
 ## Functional Requirements
 

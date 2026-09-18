@@ -50,7 +50,8 @@
 ## Phase 2 – Refactoring v0.2 (Datenbank-Fokus)
 
 Ziel: `Artist`, `Stage`, `Act` als getrennte Entitäten statt einer flachen `ProgramItem`-Tabelle,
-bei erhaltener Funktionalität und SQLite. Neue Struktur: `models.py`, `crud.py`, `routers.py`.
+bei erhaltener Funktionalität und unveränderter Datenbank (in dieser Phase noch SQLite). Neue
+Struktur: `models.py`, `crud.py`, `routers.py`.
 
 13. **Domain Model erweitern**
     → [`domain-model.md`](domain-model.md) – erledigt.
@@ -82,7 +83,38 @@ bei erhaltener Funktionalität und SQLite. Neue Struktur: `models.py`, `crud.py`
     darauf referenziert.
 
 22. **Testen und Reviewen**
-    `python -m pytest`, danach Review analog zu `review.md`.
+    `python -m pytest` (grün), Review als Nachtrag in [`review.md`](review.md) (Stand
+    2026-09-16, Urteil „Freigeben") – erledigt.
+
+## Phase 3 – Umstellung auf PostgreSQL (v0.2)
+
+Ziel: Datenhaltung von der lokalen SQLite-Datei auf eine gehostete PostgreSQL-Datenbank
+(Neon) umstellen, bei unveränderter Funktionalität und unverändertem API-Vertrag.
+Aufgaben T-10 bis T-14 in [`backlog.md`](backlog.md).
+
+23. **Verbindung konfigurierbar machen**
+    `DATABASE_URL` aus `.env` (`python-dotenv`), Engine auf PostgreSQL – erledigt.
+
+24. **Treiber festlegen**
+    `psycopg` (v3), `postgresql://` wird in `db.py` auf `postgresql+psycopg://` normalisiert –
+    erledigt.
+
+25. **Datenintegrität DB-seitig absichern**
+    `ends_at > starts_at` als `CheckConstraint` auf `Act` – erledigt.
+
+26. **Dokumentation nachziehen**
+    `requirements.md` (B2, T1), `domain-model.md`, `architecture.md`, `CLAUDE.md`,
+    `backlog.md` – erledigt.
+
+27. **Testen und Reviewen**
+    `python -m pytest` (läuft weiterhin gegen In-Memory-SQLite) plus lesende Live-Prüfung
+    gegen Neon; Review-Nachtrag in [`review.md`](review.md), Abschnitt 7 (Stand 2026-09-18,
+    Urteil „Freigeben mit nicht blockierenden Änderungswünschen") – erledigt.
+
+28. **Änderungswünsche aus dem Review umsetzen**
+    T-19 (klare Meldung bei fehlender `DATABASE_URL`), T-20 (`pool_pre_ping`) und T-21 (Test
+    für die `CheckConstraint`) – erledigt, siehe [`backlog.md`](backlog.md). Offen bleiben die
+    älteren Punkte T-15 bis T-18.
 
 
 
