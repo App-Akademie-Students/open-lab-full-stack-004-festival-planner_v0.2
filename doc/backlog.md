@@ -11,6 +11,10 @@ Abschnitt 7 (Stand 2026-09-18). Beide Urteile: „Freigeben mit nicht blockieren
 Änderungswünschen", keine Blocker. T-19 bis T-21 aus dem Phase-2-Review sind inzwischen
 umgesetzt; offen sind nur noch T-15 bis T-18 im Abschnitt „Offene Punkte aus dem Review".
 
+Für v0.3 (Entwurf der Anforderungen in [`requirements.md`](requirements.md)) sind bisher
+US-7 (responsive Darstellung mit Tailwind CSS, umgesetzt) und US-8 (Programm nach Tag
+gruppieren und filtern, umgesetzt) aufgenommen – siehe Abschnitt „v0.3" unten.
+
 Abgeleitet aus den Muss-Anforderungen in [`requirements.md`](requirements.md).
 Technischer Rahmen: [`architecture.md`](architecture.md).
 
@@ -209,7 +213,71 @@ genutzt); falls doch gewünscht: `TRUNCATE ... RESTART IDENTITY`. Details in
 Langfristig, ohne aktuellen Bedarf: `create_all` beim App-Start durch Migrationen ersetzen
 (siehe „Aktuell nicht vorhanden" in [`architecture.md`](architecture.md)).
 
+## v0.3 – Neue Anforderungen
+
+Abgeleitet aus dem Entwurf v0.3 in [`requirements.md`](requirements.md). Bisher sind US-7 und
+US-8 aufgenommen; die übrigen neuen Anforderungen (C4 mehrere Festivals, C5, C7–C9, F5, F7,
+F8, F10, B5, B6 Festival-Teil, B7) sind noch nicht ins Backlog übernommen.
+
+| ID | Titel | Abhängig von | Anforderungen | Status |
+|---|---|---|---|---|
+| US-7 | Responsive Darstellung mit Tailwind CSS | US-6 | C10, F4, F9, T1 | erledigt |
+| US-8 | Programm nach Tag gruppieren und filtern | US-2 | C4 (Mehrtägigkeit), C6, F6, B4, B6 (Tagesfilter) | erledigt |
+
+### US-7 · Responsive Darstellung mit Tailwind CSS
+
+> Als **Besucher** möchte ich das Programm auf Smartphone und Desktop übersichtlich und leicht
+> bedienbar sehen, damit ich mich auf jedem Gerät schnell zurechtfinde.
+
+- [x] Die Oberfläche wird mit Tailwind CSS gestaltet; das bisherige eigene CSS ist dadurch ersetzt.
+- [x] Das CSS wird mit der Tailwind-CLI aus den in `static/` verwendeten Klassen erzeugt; der
+      Build-Befehl ist in `CLAUDE.md` unter „Project Commands" dokumentiert.
+- [x] Kein JS-Framework und kein JS-Build – das Frontend bleibt HTML + Vanilla JS; der CSS-Build
+      ist der einzige Build-Schritt (F4). Löst das US-6-Kriterium „kein Build-Schritt" ab.
+- [x] Bei 360 px Breite ist alles ohne horizontales Scrollen lesbar; auf Desktop-Breite
+      (ab 1024 px) bleibt die Liste übersichtlich und nutzt die Breite sinnvoll.
+- [x] Bühnenfilter und alle weiteren Bedienelemente sind per Touch bedienbar.
+- [x] Funktionen bleiben unverändert: chronologische Liste, Bühnenfilter, „läuft jetzt" und
+      „als Nächstes" sind hervorgehoben und optisch voneinander unterscheidbar.
+- [x] Entschieden und dokumentiert ist, ob die erzeugte CSS-Datei eingecheckt oder beim
+      Setup gebaut wird, und woher die Tailwind-CLI kommt.
+
+**US-7 – Entscheidung:** `static/style.css` wird eingecheckt, damit die App ohne Build-Schritt
+startet; die Tailwind-CLI (v4, Standalone-Binary ohne Node) braucht nur, wer das Frontend
+ändert. Details: [`../CLAUDE.md`](../CLAUDE.md#project-decisions).
+
+**Hinweis zur Definition of Done:** „Keine neuen Dependencies" gilt für US-7 mit der Ausnahme
+Tailwind CSS (Tailwind-CLI), die T1 ausdrücklich erlaubt.
+
+### US-8 · Programm nach Tag gruppieren und filtern
+
+> Als **Besucher** möchte ich das Programm eines mehrtägigen Festivals nach Tagen gegliedert
+> sehen und auf einen Tag einschränken, damit ich mich auf einen einzelnen Tag konzentrieren kann.
+
+- [x] Das Seed-Skript legt ein Programm über mindestens zwei aufeinanderfolgende Tage an,
+      beginnend mit dem heutigen Datum (Festival-Zeit), damit Gruppierung und Filter prüfbar sind.
+- [x] Ohne Tagesfilter ist die Liste nach Tag gruppiert: pro Tag eine Überschrift mit Wochentag
+      und Datum (z. B. „Fr, 18.09."), darunter die Acts dieses Tages chronologisch.
+- [x] Ein Auswahlfeld bietet „Alle Tage" und alle Tage, an denen Acts stattfinden
+      (chronologisch); die Auswahl zeigt nur die Acts dieses Tages.
+- [x] Ein Act gehört zu dem Tag, an dem er beginnt (Festival-Zeit) – auch wenn er nach
+      Mitternacht endet.
+- [x] Tages- und Bühnenfilter sind kombinierbar; „läuft jetzt" und „als Nächstes" beziehen sich
+      wie beim Bühnenfilter auf die gefilterte Liste.
+- [x] `GET /api/program?day=YYYY-MM-DD` filtert serverseitig (kombinierbar mit `stage`); ein Tag
+      ohne Acts liefert eine leere Liste. `GET /api/days` liefert die Tage mit Acts.
+- [x] Hat das Festival nur einen Tag, bleibt die Anzeige übersichtlich (eine Tagesüberschrift,
+      Auswahl mit nur einem Tag).
+- [x] Tagesfilter und Tagesüberschriften sind auf dem Smartphone (360 px) per Touch bedienbar
+      bzw. lesbar (F9).
+
+**US-8 – Umsetzung:** Tagesregel als reine Funktionen `festival_day()`/`day_bounds()` in
+`app/schedule.py`; `GET /api/days` und der `day`-Parameter in `app/crud.py`/`app/routers.py`;
+Gruppierung und Tages-Dropdown in `static/app.js`. Bei Auswahl eines späteren Tages ist dessen
+erster Act „als Nächstes" markiert – konsistent mit der Regel „Status nach dem Filter".
+Details: [`architecture.md`](architecture.md#festivaltage).
+
 ## Bewusst nicht im Backlog
 
-Favoriten, Suche, Tagesfilter, Detailansicht, Admin-UI, Auto-Refresh, Konflikterkennung –
-siehe optionale Anforderungen O1–O8 und Scope-Abgrenzung in [`requirements.md`](requirements.md).
+Suche, Detailansicht, Admin-UI, Auto-Refresh, Konflikterkennung – siehe optionale
+Anforderungen O2–O8 und Scope-Abgrenzung in [`requirements.md`](requirements.md).

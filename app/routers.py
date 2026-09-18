@@ -1,5 +1,5 @@
-"""API endpoints: GET /api/program, GET /api/stages."""
-from datetime import datetime
+"""API endpoints: GET /api/program, GET /api/stages, GET /api/days."""
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -31,13 +31,19 @@ def get_stages(db: Session = Depends(get_db)) -> list[str]:
     return crud.list_stages(db)
 
 
+@router.get("/api/days")
+def get_days(db: Session = Depends(get_db)) -> list[date]:
+    return crud.list_days(db)
+
+
 @router.get("/api/program", response_model=ProgramResponse)
 def get_program(
     stage: str | None = None,
+    day: date | None = None,
     db: Session = Depends(get_db),
     now: datetime = Depends(festival_now),
 ) -> ProgramResponse:
-    rows = crud.list_program(db, stage=stage)
+    rows = crud.list_program(db, stage=stage, day=day)
     statuses = compute_statuses(rows, now)
     items = [
         ProgramItemOut(

@@ -1,9 +1,9 @@
-"""Business logic: festival time and 'now' / 'next' status.
+"""Business logic: festival time, festival days and 'now' / 'next' status.
 
 Pure functions only - no database, no HTTP - so they are testable without
 FastAPI or a database session.
 """
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 
 # Fixed offset UTC+02:00, no DST logic (see CLAUDE.md).
 FESTIVAL_TZ = timezone(timedelta(hours=2))
@@ -12,6 +12,20 @@ FESTIVAL_TZ = timezone(timedelta(hours=2))
 def festival_now() -> datetime:
     """Current festival-local time, naive (no tzinfo attached)."""
     return datetime.now(FESTIVAL_TZ).replace(tzinfo=None)
+
+
+def festival_day(starts_at: datetime) -> date:
+    """The festival day an act belongs to: the day it starts on.
+
+    An act running past midnight (e.g. 23:00-01:00) still belongs to its start day.
+    """
+    return starts_at.date()
+
+
+def day_bounds(day: date) -> tuple[datetime, datetime]:
+    """Start (inclusive) and end (exclusive) of `day`, for filtering acts by start time."""
+    start = datetime.combine(day, time.min)
+    return start, start + timedelta(days=1)
 
 
 def compute_statuses(items, now: datetime) -> list[str | None]:

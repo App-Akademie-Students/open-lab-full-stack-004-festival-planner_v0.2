@@ -27,14 +27,16 @@ festival-planner/
 │   ├── main.py            FastAPI-App: Objekt, Lifespan (init_db), bindet routers.py + static/ ein
 │   ├── models.py          ORM-Modelle: Artist, Stage, Act (siehe domain-model.md)
 │   ├── db.py              Datenbank-Infrastruktur: DATABASE_URL aus .env, Engine, Session, init_db(), get_db()
-│   ├── crud.py            Queries: Bühnenliste, Programmliste (Joins über Artist/Stage)
-│   ├── routers.py         API-Endpunkte: GET /api/program, GET /api/stages
-│   ├── schedule.py        Business-Logik: Festival-Zeit, „läuft jetzt" / „als Nächstes"
+│   ├── crud.py            Queries: Bühnenliste, Tagesliste, Programmliste (Joins über Artist/Stage)
+│   ├── routers.py         API-Endpunkte: GET /api/program, GET /api/stages, GET /api/days
+│   ├── schedule.py        Business-Logik: Festival-Zeit, Festivaltag, „läuft jetzt" / „als Nächstes"
 │   └── seed.py            Seed-Skript: Artists/Stages anlegen, dann Acts einfügen
 ├── static/
 │   ├── index.html         die einzige Seite
-│   ├── style.css          Layout (mobiltauglich), Hervorhebung von Status
-│   └── app.js             API abrufen, Liste rendern, Bühnenfilter
+│   ├── style.css          von der Tailwind-CLI erzeugt (eingecheckt, nicht von Hand ändern)
+│   └── app.js             API abrufen, Liste rendern, Bühnenfilter, Status-Klassen
+├── tailwind/
+│   └── input.css          Tailwind-Quelle für static/style.css
 ├── tests/
 │   ├── test_schedule.py   Unit-Tests der Business-Logik (ohne DB, ohne HTTP)
 │   ├── test_models.py     DB-seitige Invarianten der Modelle (In-Memory-SQLite)
@@ -53,12 +55,12 @@ Datenbankdatei mehr. `.env` mit der `DATABASE_URL` ist per `.gitignore` von Git 
 |---|---|---|
 | `app/models.py` | ORM-Modelle `Artist`, `Stage`, `Act` inkl. `relationship()` (siehe `domain-model.md`). | SQLAlchemy, `db.Base` |
 | `app/db.py` | `DATABASE_URL` aus `.env` laden und auf den `psycopg`-Treiber normalisieren, Engine, Session-Factory, FastAPI-Dependency `get_db()`, `Base`, `init_db()` (Tabellen anlegen). Reine Infrastruktur, kein Modell mehr. | SQLAlchemy, `psycopg`, `python-dotenv` |
-| `app/crud.py` | Queries als einfache Funktionen: Bühnenliste (sortiert), Programmliste (`Act` mit Join auf `Artist`/`Stage`, sortiert, optional nach Bühne gefiltert). | `models`, `db` (Session) |
-| `app/routers.py` | Die zwei API-Endpunkte, Pydantic-Antwortmodelle; ruft `crud.py` für die Daten und `schedule.py` für den Status auf. | `crud`, `schedule`, FastAPI |
-| `app/schedule.py` | `FESTIVAL_TZ`, `festival_now()` und reine Funktion(en), die Acts anhand eines übergebenen Zeitpunkts einen Status zuordnen. | nur `datetime` – **kein** FastAPI, **keine** Session |
+| `app/crud.py` | Queries als einfache Funktionen: Bühnenliste (sortiert), Tagesliste (Tage mit Acts, sortiert), Programmliste (`Act` mit Join auf `Artist`/`Stage`, sortiert, optional nach Bühne und Tag gefiltert). | `models`, `db` (Session), `schedule` (Tagesregel) |
+| `app/routers.py` | Die drei API-Endpunkte, Pydantic-Antwortmodelle; ruft `crud.py` für die Daten und `schedule.py` für den Status auf. | `crud`, `schedule`, FastAPI |
+| `app/schedule.py` | `FESTIVAL_TZ`, `festival_now()`, die Tagesregel (`festival_day()`, `day_bounds()`) und reine Funktion(en), die Acts anhand eines übergebenen Zeitpunkts einen Status zuordnen. | nur `datetime` – **kein** FastAPI, **keine** Session |
 | `app/main.py` | App-Objekt, `init_db()` beim Start, bindet `routers.py` und `static/` ein. Enthält selbst keine Endpunkte mehr. | `db`, `routers` |
-| `app/seed.py` | `python -m app.seed`: Tabellen anlegen, vorhandene Zeilen löschen, Artists und Stages anlegen, ca. 10–15 Acts auf 3 Bühnen mit FK-Referenzen einfügen. | `db`, `models`, `schedule` |
-| `static/*` | Reines HTML/CSS/Vanilla JS. Lädt Bühnen und Programm über die API, rendert die Liste, filtert per Dropdown, hebt Status hervor. | nur die HTTP-API |
+| `app/seed.py` | `python -m app.seed`: Tabellen anlegen, vorhandene Zeilen löschen, Artists und Stages anlegen, Acts für vier Festivaltage (ab heute) auf 3 Bühnen mit FK-Referenzen einfügen. | `db`, `models`, `schedule` |
+| `static/*` | HTML + Vanilla JS, gestaltet mit Tailwind-Klassen; `style.css` ist erzeugt. Lädt Bühnen und Programm über die API, rendert die Liste, filtert per Dropdown, hebt Status hervor. | nur die HTTP-API |
 
 ## Wo liegt was?
 
@@ -116,12 +118,16 @@ Der Preis dieser Entscheidung: `crud.py` muss die Umbenennung (`artist.name` →
 `stage.name` → `stage`) explizit vornehmen – die Pydantic-Antwortmodelle in `routers.py`
 bilden das ORM-Modell also nicht direkt ab.
 
-### `GET /api/program?stage=<name>`
+### `GET /api/program?stage=<name>&day=<YYYY-MM-DD>`
 
 Programmpunkte chronologisch nach `starts_at` sortiert, bei gleicher Startzeit alphabetisch
 nach Bühnenname (`ORDER BY Act.starts_at, Stage.name` über den Join – feste Reihenfolge, auch
-für Tests), optional nach Bühne gefiltert (B1).
-Eine unbekannte Bühne liefert eine leere Liste, keinen Fehler.
+für Tests), optional nach Bühne (B1) und/oder Tag (B6, F6) gefiltert.
+Eine unbekannte Bühne und ein Tag ohne Acts liefern eine leere Liste, keinen Fehler; ein
+ungültiges Datum in `day` lehnt FastAPI mit 422 ab.
+Der Tagesfilter nutzt die Tagesregel aus `schedule.py` (siehe „Festivaltage") und filtert per
+Bereich `day 00:00 <= starts_at < day+1 00:00` statt per `date()`-Cast – das verhält sich auf
+PostgreSQL und der In-Memory-SQLite der Tests gleich.
 
 ```json
 {
@@ -151,6 +157,15 @@ Alphabetisch sortierte Liste der Bühnennamen aus der `Stage`-Tabelle, für das 
 ["Hauptbühne", "Waldbühne", "Zeltbühne"]
 ```
 
+### `GET /api/days`
+
+Chronologisch sortierte Liste der Tage, an denen mindestens ein Act beginnt, für das
+Tages-Dropdown (US-8). Abgeleitet aus `Act.starts_at` – es gibt keine eigene Tag-Entität.
+
+```json
+["2026-09-18", "2026-09-19"]
+```
+
 ### `GET /`
 
 Liefert `static/index.html`; `static/` wird per `StaticFiles` eingebunden.
@@ -164,8 +179,18 @@ Regeln für einen Zeitpunkt `now`:
   (bei gleicher Startzeit mehrere).
 - sonst `null`.
 
-Der Status wird **nach** dem Bühnenfilter berechnet. Dadurch ist „als Nächstes" auf einer
-gefilterten Bühne automatisch korrekt (Benutzeraktion 4).
+Der Status wird **nach** dem Bühnen- und Tagesfilter berechnet. Dadurch ist „als Nächstes" auf
+einer gefilterten Bühne automatisch korrekt (Benutzeraktion 4). Folge beim Tagesfilter: Wer
+einen späteren Tag auswählt, sieht dessen ersten Act als „als Nächstes" markiert – bezogen auf
+die angezeigte Liste ist das der nächste Act.
+
+## Festivaltage
+
+- Ein Act gehört zu dem Tag, an dem er **beginnt** (`festival_day(starts_at)`), auch wenn er
+  nach Mitternacht endet (z. B. 23:00–01:00). Festgelegt in US-8.
+- `day_bounds(day)` liefert `[day 00:00, day+1 00:00)` für den Filter in `crud.py`.
+- Beides sind reine Funktionen in `schedule.py`, getestet in `tests/test_schedule.py`. Das
+  Frontend gruppiert nach derselben Regel (Datum aus `starts_at`).
 
 Die Funktionen bekommen `now` als Parameter – sie lesen die Uhr nicht selbst. Das macht sie
 ohne Tricks testbar.
@@ -211,16 +236,31 @@ ohne Tricks testbar.
 
 ## Seed-Daten
 
-Das Seed-Skript legt das Festival auf das **heutige Datum** (in Festival-Zeit). So läuft in
-einer Demo tatsächlich gerade etwas, ohne dass eine Funktion zum Simulieren der Uhrzeit nötig ist.
+Das Seed-Skript legt das Festival auf **vier Tage ab dem heutigen Datum** (in Festival-Zeit),
+je ein Slot-Block pro Tag (`FESTIVAL_DAYS` in `seed.py`). So läuft in einer Demo tatsächlich
+gerade etwas, ohne dass eine Funktion zum Simulieren der Uhrzeit nötig ist, und Tagesfilter und
+Gruppierung sind prüfbar. Je ein Act am zweiten und dritten Tag (23:00–01:00, 22:30–02:00) endet nach Mitternacht: Liegt
+die Endzeit eines Slots vor der Startzeit, setzt das Skript das Ende auf den Folgetag.
 Reihenfolge beim Einfügen: erst `Artist`- und `Stage`-Zeilen, danach `Act`-Zeilen mit den
 passenden FK-Referenzen.
 
 ## Frontend
 
-- Beim Laden: `GET /api/stages` für das Dropdown, dann `GET /api/program`.
-- Bei Filterwechsel: erneut `GET /api/program?stage=…`.
-- Anzeige: Liste mit Uhrzeit (HH:MM), Titel, Bühne; `status` wird als CSS-Klasse gesetzt.
+- Beim Laden: `GET /api/stages` und `GET /api/days` für die beiden Dropdowns, dann
+  `GET /api/program`.
+- Bei Filterwechsel (Tag oder Bühne): erneut `GET /api/program?stage=…&day=…` mit beiden
+  aktuellen Werten.
+- Anzeige: nach Tag gruppiert – pro Tag eine Überschrift („Fr, 18.09.") und eine Liste. Der
+  Wochentag wird von Hand aus dem Datum berechnet (nicht über `Intl`/Geräte-Locale).
+  Pro Eintrag Uhrzeit (HH:MM), Titel, Bühne; `status` bestimmt die Tailwind-Klassen des
+  Eintrags (farbiger linker Rand + Hintergrund, `STATUS_CLASSES` in `app.js`).
+- Gestaltung mit Tailwind CSS (F9): Mobil (ab 360 px) untereinander umbrechend, ab `sm`
+  (640 px) als Raster Zeit | Titel | Bühne, Inhalt auf `max-w-3xl` begrenzt.
+- CSS-Build: `tailwind/input.css` → `static/style.css` über die Tailwind-CLI (Standalone-Binary,
+  kein Node/npm). Nicht offensichtlich: Tailwind erzeugt nur Klassen, die es als vollständige
+  Strings in `static/` findet – dynamisch zusammengesetzte Klassennamen fehlen im CSS.
+  Die erzeugte Datei ist eingecheckt, damit der Betrieb keinen Build-Schritt braucht (T2).
+  Befehle: [`../CLAUDE.md`](../CLAUDE.md#build-css-nur-bei-änderungen-am-frontend).
 - Aktualisierung durch Neuladen der Seite – keine Echtzeit-Updates (Scope-Abgrenzung).
 
 ## Tests
@@ -234,7 +274,8 @@ im Importpfad – daher keine `conftest.py` und keine `pytest.ini` nötig.
   Ende nach Start wird angenommen, Ende vor Start und Ende gleich Start werden mit
   `IntegrityError` abgelehnt. Eigene Engine pro Test (Fixture), kein `TestClient`. Läuft unter
   In-Memory-SQLite, weil SQLite CHECK-Constraints ebenfalls durchsetzt.
-- `tests/test_api.py` – wenige Tests: Sortierung, Bühnenfilter, Bühnenliste, `status` im JSON.
+- `tests/test_api.py` – wenige Tests: Sortierung, Bühnen- und Tagesfilter (auch kombiniert),
+  Bühnen- und Tagesliste, `status` im JSON (auch innerhalb eines gewählten Tages).
   Nutzt In-Memory-SQLite – bewusst **nicht** die PostgreSQL-Datenbank: die Tests laufen so
   ohne Netzwerk und hinterlassen keine Daten in Neon. Der Preis: die migrierte
   Infrastrukturschicht (URL-Normalisierung, psycopg-Verbindung, PostgreSQL-spezifisches
@@ -259,15 +300,15 @@ im Importpfad – daher keine `conftest.py` und keine `pytest.ini` nötig.
   Werten oder mehreren Umgebungen. Die Zeitzone bleibt eine Konstante im Code.
 - Alembic-Migrationen – kommt, sobald Schemaänderungen nicht mehr per Löschen und
   Neu-Seeden gelöst werden sollen (z. B. produktive Daten, die erhalten bleiben müssen).
-- Jinja-Templates, npm/Build-Tooling, Docker, `conftest.py` – kommen mit den jeweiligen
-  Anforderungen (serverseitiges Rendering, Frontend-Build, Deployment, wachsende Testsuite).
+- Jinja-Templates, npm/JS-Build-Tooling, Docker, `conftest.py` – kommen mit den jeweiligen
+  Anforderungen (serverseitiges Rendering, JS-Build, Deployment, wachsende Testsuite). Der
+  einzige Build-Schritt ist bisher der CSS-Build mit der Tailwind-CLI (siehe „Frontend").
 
 ## Erweiterungspunkte (nicht in der aktuellen Version)
 
 - **Konflikterkennung** ist nicht Teil der bestätigten Anforderungen (nur O7, setzt Favoriten
   O4 voraus; laut Domain Model sind Überlappungen erlaubt). Käme sie hinzu, wäre sie eine
   weitere reine Funktion in `app/schedule.py` – erst nach Anpassung der Anforderungen.
-- **Tagesfilter (O1):** zusätzlicher Query-Parameter in `/api/program`, kein Schema-Umbau.
 - **Weitere Attribute:** Genre auf `Artist`, Kapazität/Standort auf `Stage` – durch die
   Entitätstrennung jetzt ohne Umbau von `Act` möglich (siehe `domain-model.md`).
 - **Paket-Split (`app/api/`, `app/domain/`, `app/infra/`, …):** sinnvoll, sobald einzelne

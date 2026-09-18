@@ -13,3 +13,7 @@ Neue Anforderungen:
 * Programm nach Tag filtern/gruppieren  
 * Acts als Favorit markieren (Clientseitig speichern)
 * Benutzerfreundliche und responsive Darstellung mit Tailwind CSS
+* Backendzugriff um Daten zu importieren
+* Benutzer Roadmap/ Pfad anzeigen
+* Offline-Verfügbarkeit
+* Modell erweitern : Festival

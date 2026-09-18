@@ -1,4 +1,4 @@
-"""API tests: sorting, stage filter, stage list, status field."""
+"""API tests: sorting, stage and day filter, stage and day list, status field."""
 from datetime import datetime
 
 import pytest
@@ -123,6 +123,71 @@ def test_root_serves_index_html():
     assert "text/html" in response.headers["content-type"]
 
 
+def add_second_day():
+    """Adds acts on 2026-09-12, one of them running past midnight into the 13th."""
+    db = TestSessionLocal()
+    hauptbuehne = db.query(Stage).filter_by(name="Hauptbühne").one()
+    zeltbuehne = db.query(Stage).filter_by(name="Zeltbühne").one()
+    db.add_all(
+        [
+            Act(
+                artist=Artist(name="Morning Brass"),
+                stage=hauptbuehne,
+                starts_at=datetime(2026, 9, 12, 12, 0),
+                ends_at=datetime(2026, 9, 12, 13, 0),
+            ),
+            Act(
+                artist=Artist(name="Night Owls"),
+                stage=zeltbuehne,
+                starts_at=datetime(2026, 9, 12, 23, 0),
+                ends_at=datetime(2026, 9, 13, 1, 0),
+            ),
+        ]
+    )
+    db.commit()
+    db.close()
+
+
+def test_days_are_sorted_and_use_the_start_day():
+    add_second_day()
+    response = client.get("/api/days")
+    # No 2026-09-13: "Night Owls" ends then, but starts on the 12th.
+    assert response.json() == ["2026-09-11", "2026-09-12"]
+
+
+def test_program_filtered_by_day():
+    add_second_day()
+    response = client.get("/api/program", params={"day": "2026-09-12"})
+    titles = [item["title"] for item in response.json()["items"]]
+    assert titles == ["Morning Brass", "Night Owls"]
+
+
+def test_program_filtered_by_day_and_stage():
+    add_second_day()
+    response = client.get("/api/program", params={"day": "2026-09-12", "stage": "Zeltbühne"})
+    titles = [item["title"] for item in response.json()["items"]]
+    assert titles == ["Night Owls"]
+
+
+def test_program_filtered_by_day_without_acts_returns_empty_list():
+    response = client.get("/api/program", params={"day": "2026-09-20"})
+    assert response.status_code == 200
+    assert response.json()["items"] == []
+
+
+def test_program_filtered_by_invalid_day_is_rejected():
+    response = client.get("/api/program", params={"day": "morgen"})
+    assert response.status_code == 422
+
+
+def test_status_is_computed_within_the_selected_day():
+    # now = 2026-09-11 14:00. On the 12th nothing runs yet, so its first act is "next".
+    add_second_day()
+    response = client.get("/api/program", params={"day": "2026-09-12"})
+    statuses = {item["title"]: item["status"] for item in response.json()["items"]}
+    assert statuses == {"Morning Brass": "next", "Night Owls": None}
+
+
 def test_program_and_stages_with_empty_database():
     db = TestSessionLocal()
     db.query(Act).delete()
@@ -138,3 +203,7 @@ def test_program_and_stages_with_empty_database():
     stages_response = client.get("/api/stages")
     assert stages_response.status_code == 200
     assert stages_response.json() == []
+
+    days_response = client.get("/api/days")
+    assert days_response.status_code == 200
+    assert days_response.json() == []

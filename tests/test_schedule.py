@@ -1,8 +1,8 @@
 """Unit tests for app.schedule - pure functions, no DB, no HTTP."""
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 
-from app.schedule import compute_statuses
+from app.schedule import compute_statuses, day_bounds, festival_day
 
 
 @dataclass
@@ -62,3 +62,18 @@ def test_next_is_computed_within_given_items_only():
     # so "next" must be relative to that subset, not the full program.
     filtered = [Item("C", dt(16, 0), dt(17, 0))]
     assert compute_statuses(filtered, dt(13, 0)) == ["next"]
+
+
+def test_act_belongs_to_its_start_day():
+    assert festival_day(datetime(2026, 9, 11, 12, 0)) == date(2026, 9, 11)
+
+
+def test_act_past_midnight_belongs_to_its_start_day():
+    # 23:00-01:00: the act starts on the 11th, so it belongs to the 11th.
+    assert festival_day(datetime(2026, 9, 11, 23, 0)) == date(2026, 9, 11)
+
+
+def test_day_bounds_cover_exactly_one_day():
+    start, end = day_bounds(date(2026, 9, 11))
+    assert start == datetime(2026, 9, 11, 0, 0)
+    assert end == datetime(2026, 9, 12, 0, 0)

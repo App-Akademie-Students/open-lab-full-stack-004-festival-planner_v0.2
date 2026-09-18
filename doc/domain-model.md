@@ -117,7 +117,8 @@ erDiagram
 
 ## Erweiterbarkeits-Leitplanke (nur Hinweis, keine Umsetzung)
 
-- `starts_at` / `ends_at` als volle Zeitstempel ⇒ späterer Tagesfilter (O1) ist reine
-  Query-/Anzeige-Logik (`GROUP BY date(starts_at)`), kein Schema-Umbau.
+- `starts_at` / `ends_at` als volle Zeitstempel ⇒ der Tagesfilter (F6, US-8, umgesetzt) ist
+  reine Query-/Anzeige-Logik ohne Schema-Umbau: Der Tag eines Acts ist sein Starttag und wird
+  zur Laufzeit abgeleitet, es gibt keine eigene Tag-Entität.
 - Zusätzliche Attribute (z. B. Genre auf `Artist`, Kapazität auf `Stage`) sind jetzt durch die
   Entitätstrennung ohne Umbau des `Act`-Schemas möglich.

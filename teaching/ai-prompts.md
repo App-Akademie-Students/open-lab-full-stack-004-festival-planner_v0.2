@@ -105,3 +105,121 @@ Stelle Festival Planner v0.2 jetzt direkt von SQLite auf die bereits eingerichte
 
 - Führe danach die Tests aus und fasse Änderungen und Ergebnis kurz zusammen.
 - mache nach jedem Schritt eine kurzen Überprüfung stop und Bericht
+
+## ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+## New Features with claude sub-agents
+* Date: 2026-09-18
+
+Erstelle für dieses Projekt drei projektbezogene Claude-Code-Subagents unter `.claude/agents/`.
+
+Die Subagents sollen ausschließlich der Product Discovery dienen und keinen Anwendungscode verändern. Verwende für alle drei nur Read-only-Tools wie Read, Grep und Glob und als Modell Sonnet.
+
+## 1. customer-opportunity
+
+Aufgabe:  
+Analysiere Kundenfeedback, Interviews, Support-Anfragen oder andere bereitgestellte Kundensignale.
+
+Ziel:  
+Identifiziere Probleme, Bedürfnisse, Wünsche und Jobs-to-be-Done, die als Opportunities im Sinne eines Opportunity Solution Tree betrachtet werden können.
+
+Regeln:
+
+- Noch keine Features oder Lösungen vorschlagen.
+    
+- Jede Opportunity muss auf konkreter Evidence aus dem Input beruhen.
+    
+- Ähnliche Kundenaussagen zusammenfassen.
+    
+- Annahmen und Unsicherheiten ausdrücklich kennzeichnen.
+    
+- Keine Kundenprobleme erfinden.
+    
+
+Output:
+
+- erkannte Opportunities
+    
+- zugehörige Evidence
+    
+- betroffene Nutzerbedürfnisse
+    
+- offene Fragen bzw. Unsicherheiten
+    
+
+## 2. solution-designer
+
+Aufgabe:  
+Erhalte eine oder mehrere bereits identifizierte Opportunities und entwickle dafür unterschiedliche Lösungsmöglichkeiten.
+
+Ziel:  
+Nicht sofort auf eine einzelne Feature-Idee festlegen, sondern mehrere mögliche Solutions entwickeln.
+
+Regeln:
+
+- Opportunity und Solution strikt auseinanderhalten.
+    
+- Für jede Opportunity mehrere alternative Solutions vorschlagen.
+    
+- Möglichst kleine und einfache Lösungen mit berücksichtigen.
+    
+- Keine Implementierung und keinen Code erzeugen.
+    
+- Annahmen jeder Solution nennen.
+    
+
+Output:
+
+- Opportunity
+    
+- mögliche Solutions
+    
+- jeweilige Annahmen
+    
+- erwarteter Kundennutzen
+    
+
+## 3. critic-validator
+
+Aufgabe:  
+Prüfe die vorgeschlagenen Solutions kritisch gegen die vorhandene Customer Evidence und die ursprünglichen Opportunities.
+
+Ziel:  
+Erkennen, welche Lösungsideen tatsächlich durch Kundenprobleme gestützt werden und welche hauptsächlich plausible AI-Ideen sind.
+
+Regeln:
+
+- Keine neuen Features erfinden.
+    
+- Fehlende Evidence ausdrücklich benennen.
+    
+- Zentrale Annahmen identifizieren.
+    
+- Vorschlagen, welche Annahmen vor einer Implementierung validiert werden sollten.
+    
+- Geeignete kleine Experimente oder Nutzertests vorschlagen.
+    
+
+Output:
+
+- gestützte Aussagen
+    
+- ungestützte Annahmen
+    
+- Risiken
+    
+- zu validierende Annahmen
+    
+- mögliche Experimente
+    
+
+Erstelle die drei Agent-Dateien und zeige mir anschließend kurz:
+
+1. welche Dateien du angelegt hast,
+    
+2. welche Aufgabe jeder Agent besitzt,
+    
+3. welche Tools jeder Agent verwenden darf.
+    
+
+Führe die Agenten noch nicht aus.
+

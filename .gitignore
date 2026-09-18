@@ -19,6 +19,11 @@ venv/
 *.sqlite
 *.sqlite3
 
+# Tailwind CLI (standalone binary, downloaded per platform – see CLAUDE.md)
+
+tailwindcss
+tailwindcss.exe
+
 # IDE
 
 .vscode/

@@ -20,6 +20,10 @@ Abschnitt 7 zur PostgreSQL-Umstellung), beide ohne Blocker. Offen sind nur die n
 blockierenden Änderungswünsche aus dem Backlog: T-19 bis T-21 sind umgesetzt, offen sind
 noch T-15 bis T-18.
 
+v0.3 ist als Entwurf in `doc/requirements.md` aufgenommen. Davon umgesetzt: US-7 (responsive
+Darstellung mit Tailwind CSS) und US-8 (Programm nach Tag gruppieren und filtern); die übrigen
+v0.3-Anforderungen sind noch nicht im Backlog.
+
 Ab Phase 2 gilt eine neue Leitlinie für die Architektur: nicht mehr „so klein wie möglich"
 (MVP), sondern gut strukturiert und erweiterbar – die Struktur wächst Schritt für Schritt mit
 der Komplexität, sobald ein konkreter Bedarf besteht. Details:
@@ -32,8 +36,8 @@ Nach jeder Story/Aufgabe den Status in `doc/backlog.md` aktualisieren.
 * FastAPI, gestartet über uvicorn
 * SQLAlchemy
 * PostgreSQL (gehostet bei Neon), Treiber `psycopg` (v3)
-* HTML + CSS
-* Vanilla JavaScript – kein Framework, kein Build-Tooling
+* HTML + Tailwind CSS (v4, CSS wird mit der Tailwind-CLI erzeugt – einziger Build-Schritt)
+* Vanilla JavaScript – kein JS-Framework, kein JS-Build
 
 Nur für die Entwicklung (bewusste Ausnahme von T1 in `doc/requirements.md`):
 
@@ -44,7 +48,7 @@ Nur für die Entwicklung (bewusste Ausnahme von T1 in `doc/requirements.md`):
 
 * **Festival-Zeitzone (T3):** fester Offset UTC+02:00. Keine Sommer-/Winterzeit-Logik und
   damit keine zusätzliche Dependency (`tzdata` wäre unter Windows für `zoneinfo` nötig).
-  Für ein eintägiges Festival ausreichend.
+  Für ein Festival über wenige aufeinanderfolgende Tage ausreichend.
 * **Tests:** pytest + httpx ausschließlich als Dev-Dependencies, nicht für den Betrieb.
 * **Sprache:** Projektdokumentation (`doc/`, README) auf Deutsch; Code (Bezeichner,
   Kommentare, Docstrings) auf Englisch.
@@ -60,15 +64,24 @@ Nur für die Entwicklung (bewusste Ausnahme von T1 in `doc/requirements.md`):
   Pool-Verbindung scheitert.
   Tests laufen weiterhin gegen eine In-Memory-SQLite-DB (`tests/test_api.py`,
   `tests/test_models.py`), nicht gegen Neon.
+* **Tailwind CSS (v0.3, US-7):** Quelle ist `tailwind/input.css`, die Tailwind-CLI erzeugt
+  daraus `static/style.css` (minifiziert). Die erzeugte Datei ist **eingecheckt**, damit die App
+  ohne Tailwind-CLI, Node oder Build-Schritt startet (T2) – die CLI braucht nur, wer das
+  Frontend ändert. Verwendet wird das **Standalone-Binary** der Tailwind-CLI (kein Node/npm);
+  es liegt nicht eingecheckt im Projektordner (siehe `.gitignore`). Nur Klassennamen aus
+  `static/` werden erkannt; in `app.js` gesetzte Klassen müssen deshalb vollständig
+  ausgeschrieben sein (kein Zusammensetzen wie `` `bg-${color}-50` ``).
 
 ## Functional Requirements
 
 Die Anforderungen (Muss / optional / Benutzeraktionen / Scope-Abgrenzung) sind in
 [`doc/requirements.md`](doc/requirements.md) definiert.
 
-Kurzfassung: Ein eintägiges Festival, Programm als chronologische Liste, Filter nach Bühne,
-Anzeige „läuft jetzt / kommt als Nächstes". Daten per Seed, kein Login. Bewusst so klein
-wie möglich, aber im Datenmodell auf Mehrtägigkeit vorbereitet.
+Kurzfassung (umgesetzter Stand): Ein Festival über einen oder mehrere Tage, Programm als
+chronologische Liste, nach Tag gruppiert, Filter nach Tag und Bühne, Anzeige „läuft jetzt /
+kommt als Nächstes", responsive mit Tailwind CSS. Daten per Seed, kein Login.
+Weitere v0.3-Anforderungen (mehrere Festivals, Favoriten, Import, Offline) sind in
+`doc/requirements.md` als Entwurf aufgenommen, aber noch nicht umgesetzt.
 
 ## Architecture
 
@@ -80,20 +93,22 @@ sobald ein konkreter Bedarf besteht (nicht spekulativ auf Vorrat):
 
 | Bereich | Ort |
 |---|---|
-| API (`GET /api/program?stage=`, `GET /api/stages`) | `app/routers.py` |
+| API (`GET /api/program?stage=&day=`, `GET /api/stages`, `GET /api/days`) | `app/routers.py` |
 | App-Objekt, Lifespan, bindet Router + `static/` ein | `app/main.py` |
 | Datenbank-Infrastruktur: Engine (PostgreSQL/Neon, `DATABASE_URL` aus `.env`), Session, `init_db()` | `app/db.py` |
 | ORM-Modelle `Artist`, `Stage`, `Act` | `app/models.py` |
 | Datenbank-Queries (Joins über `Artist`/`Stage`) | `app/crud.py` |
-| Business-Logik: Festival-Zeit, Status „now" / „next" (reine Funktionen, ohne DB/HTTP) | `app/schedule.py` |
-| Seed-Skript (Festival auf das heutige Datum) | `app/seed.py` |
-| Frontend (HTML/CSS/Vanilla JS) | `static/` |
+| Business-Logik: Festival-Zeit, Festivaltag, Status „now" / „next" (reine Funktionen, ohne DB/HTTP) | `app/schedule.py` |
+| Seed-Skript (vier Festivaltage ab dem heutigen Datum) | `app/seed.py` |
+| Frontend (HTML/Vanilla JS, erzeugtes `style.css`) | `static/` |
+| Tailwind-Quelle für `static/style.css` | `tailwind/input.css` |
 | Tests | `tests/` |
 
 Kernregeln:
 
 * Queries stehen in `crud.py`, nicht direkt in den Endpunkten.
-* Der Status wird **nach** dem Bühnenfilter berechnet.
+* Der Status wird **nach** dem Bühnen- und Tagesfilter berechnet.
+* Ein Act gehört zu dem Tag, an dem er beginnt (auch wenn er nach Mitternacht endet).
 * Zeitstempel werden naiv in Festival-Ortszeit (UTC+02:00) gespeichert.
 * Die Business-Logik bekommt `now` als Parameter; `festival_now` ist in `schedule.py`
   definiert und wird in `routers.py` als FastAPI-Dependency verwendet; Tests ersetzen sie per
@@ -167,6 +182,20 @@ DATABASE_URL=postgresql://<user>:<password>@<host>/<db>?sslmode=require
 
 Verbindungsdaten kommen aus dem Neon-Projekt.
 
+### Build CSS (nur bei Änderungen am Frontend)
+
+Einmalig das Tailwind-CLI-Standalone-Binary für die eigene Plattform von
+<https://github.com/tailwindlabs/tailwindcss/releases> (v4) herunterladen und als
+`tailwindcss.exe` (Windows) bzw. `tailwindcss` (macOS/Linux, ausführbar machen) in den
+Projektordner legen. Danach:
+
+```bash
+./tailwindcss -i tailwind/input.css -o static/style.css --minify           # einmalig
+./tailwindcss -i tailwind/input.css -o static/style.css --watch            # während der Entwicklung
+```
+
+Die erzeugte `static/style.css` wird mit eingecheckt.
+
 ### Seed database
 
 ```bash
@@ -174,7 +203,7 @@ python -m app.seed
 ```
 
 Legt die Tabellen in der über `DATABASE_URL` konfigurierten PostgreSQL-Datenbank an bzw.
-setzt sie zurück und füllt das Programm für das heutige Datum.
+setzt sie zurück und füllt das Programm für vier Tage ab dem heutigen Datum.
 
 ### Start backend
 
