@@ -244,3 +244,22 @@ When requirements change:
 - preserve important previous milestone specifications
   as snapshots under `doc/requirements-history/`;
 - use Git history for detailed change history.
+## Project Status Maintenance
+
+Keep `doc/project-status.md` up to date.
+
+Update this file whenever a relevant project change affects one or more of the following:
+
+* project goal or current phase
+* architecture or technology stack
+* domain/data model
+* implemented features
+* current development status
+* open decisions or known issues
+* next planned steps
+
+Do not update it for trivial changes such as formatting, comments, renaming local variables, or other changes that do not affect the overall project state.
+
+The file should always represent the current state of the project, not a detailed change history.
+
+Keep it concise and understandable for an external reader who does not have to inspect the complete codebase.
