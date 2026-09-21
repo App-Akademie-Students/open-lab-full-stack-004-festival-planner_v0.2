@@ -34,7 +34,7 @@ festival-planner/
 ├── static/
 │   ├── index.html         die einzige Seite
 │   ├── style.css          von der Tailwind-CLI erzeugt (eingecheckt, nicht von Hand ändern)
-│   └── app.js             API abrufen, Liste rendern, Bühnenfilter, Status-Klassen
+│   └── app.js             API abrufen, Liste rendern, Tages-/Bühnenfilter, Status-Klassen und -Badges
 ├── tailwind/
 │   └── input.css          Tailwind-Quelle für static/style.css
 ├── tests/
@@ -249,11 +249,15 @@ passenden FK-Referenzen.
 - Beim Laden: `GET /api/stages` und `GET /api/days` für die beiden Dropdowns, dann
   `GET /api/program`.
 - Bei Filterwechsel (Tag oder Bühne): erneut `GET /api/program?stage=…&day=…` mit beiden
-  aktuellen Werten.
+  aktuellen Werten. Nicht offensichtlich: Bei schnellem Wechsel können die Antworten in anderer
+  Reihenfolge ankommen, als sie abgeschickt wurden. Ein Anfragezähler (`latestProgramRequest`)
+  sorgt dafür, dass nur die Antwort auf die jüngste Anfrage gerendert wird (T-23).
 - Anzeige: nach Tag gruppiert – pro Tag eine Überschrift („Fr, 18.09.") und eine Liste. Der
   Wochentag wird von Hand aus dem Datum berechnet (nicht über `Intl`/Geräte-Locale).
   Pro Eintrag Uhrzeit (HH:MM), Titel, Bühne; `status` bestimmt die Tailwind-Klassen des
-  Eintrags (farbiger linker Rand + Hintergrund, `STATUS_CLASSES` in `app.js`).
+  Eintrags (farbiger linker Rand + Hintergrund, `STATUS_CLASSES` in `app.js`) und zusätzlich
+  ein Text-Badge „läuft jetzt" / „als Nächstes" hinter dem Titel (`STATUS_BADGES`), damit der
+  Status nicht nur über die Farbe erkennbar ist (T-22).
 - Gestaltung mit Tailwind CSS (F9): Mobil (ab 360 px) untereinander umbrechend, ab `sm`
   (640 px) als Raster Zeit | Titel | Bühne, Inhalt auf `max-w-3xl` begrenzt.
 - CSS-Build: `tailwind/input.css` → `static/style.css` über die Tailwind-CLI (Standalone-Binary,

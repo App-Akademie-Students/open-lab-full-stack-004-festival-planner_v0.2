@@ -16,7 +16,7 @@ US-7 (responsive Darstellung mit Tailwind CSS, umgesetzt) und US-8 (Programm nac
 gruppieren und filtern, umgesetzt) aufgenommen – siehe Abschnitt „v0.3" unten. Beide sind in
 [`review.md`](review.md), Abschnitt 8 (Stand 2026-09-21), freigegeben: „Freigeben mit nicht
 blockierenden Änderungswünschen", keine Blocker; die Änderungswünsche stehen als T-22 bis T-26
-unter „Offene Punkte aus dem Review" (T-26 erledigt).
+unter „Offene Punkte aus dem Review" (T-22, T-23 und T-26 erledigt, T-24 und T-25 offen).
 
 Abgeleitet aus den Muss-Anforderungen in [`requirements.md`](requirements.md).
 Technischer Rahmen: [`architecture.md`](architecture.md).
@@ -211,11 +211,19 @@ Aus Abschnitt 8 (v0.3, US-7/US-8):
 
 | ID | Titel | Status |
 |---|---|---|
-| T-22 | Status „läuft jetzt" / „als Nächstes" zusätzlich als Text-Badge anzeigen, nicht nur über Farbe (C2; wichtiger seit dem Tagesfilter, der auf späteren Tagen deren ersten Act als „als Nächstes" markiert) | offen |
-| T-23 | Race Condition in `static/app.js` beheben: veraltete Antworten bei schnellem Filterwechsel verwerfen (`AbortController` oder Anfragezähler) | offen |
+| T-22 | Status „läuft jetzt" / „als Nächstes" zusätzlich als Text-Badge anzeigen, nicht nur über Farbe (C2; wichtiger seit dem Tagesfilter, der auf späteren Tagen deren ersten Act als „als Nächstes" markiert) | erledigt |
+| T-23 | Race Condition in `static/app.js` beheben: veraltete Antworten bei schnellem Filterwechsel verwerfen (`AbortController` oder Anfragezähler) | erledigt |
 | T-24 | Leer-Hinweis unterscheiden: leere Datenbank vs. Filterkombination ohne Acts | offen |
 | T-25 | Test für `build_acts()` in `app/seed.py`: Anzahl Tage, `ends_at > starts_at`, Acts über Mitternacht enden am Folgetag | offen |
 | T-26 | `requirements.md` nachziehen: Statuszeile und Absatz „Erweiterbarkeit" behandeln Tagesfilter/Tailwind noch als nicht umgesetzt | erledigt |
+
+**T-22/T-23 – Umsetzung (2026-09-21):** Text-Badge hinter dem Titel (`STATUS_BADGES` in
+`static/app.js`, Klassen vollständig ausgeschrieben, `static/style.css` neu erzeugt).
+Veraltete Antworten verwirft ein Anfragezähler (`latestProgramRequest`) – einfacher als
+`AbortController` und ohne Fehlerbehandlung für abgebrochene Anfragen. Geprüft im Browser
+(Headless-Chrome, 360 px und 1280 px) und für T-23 mit verzögert antwortendem Mock-`fetch`:
+Die alte Version zeigt die vorletzte Auswahl, die neue die letzte. Automatisierte JS-Tests gibt
+es bewusst nicht (kein JS-Build, keine JS-Test-Dependency).
 
 **Hinweis (keine Aufgabe):** Da `app/seed.py` per `DELETE` löscht, laufen die
 PostgreSQL-Sequenzen beim Neu-Seeden weiter – die `id`-Werte beginnen also nicht wieder bei 1

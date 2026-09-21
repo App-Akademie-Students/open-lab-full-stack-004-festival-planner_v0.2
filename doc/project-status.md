@@ -81,8 +81,10 @@ Details: [`domain-model.md`](domain-model.md).
 ## 5. Implementierte Features
 
 - Programm als chronologische Liste (Zeit, Titel, Bühne), ohne Login (US-2).
-- Hervorhebung „läuft jetzt" und „kommt als Nächstes", optisch unterscheidbar (US-3, US-4).
-- Filter nach Bühne (US-5) und nach Tag, kombinierbar (US-8).
+- Hervorhebung „läuft jetzt" und „kommt als Nächstes", optisch unterscheidbar per Farbe und
+  Text-Badge (US-3, US-4, T-22).
+- Filter nach Bühne (US-5) und nach Tag, kombinierbar (US-8); bei schnellem Filterwechsel
+  wird nur die Antwort auf die letzte Auswahl angezeigt (T-23).
 - Mehrtägiges Programm, nach Tag gruppiert mit Überschrift wie „Fr, 18.09." (US-8).
 - Responsive Oberfläche mit Tailwind CSS, ab 360 px ohne horizontales Scrollen (US-6, US-7).
 - Seed-Skript mit vier Festivaltagen ab heute, inkl. paralleler Acts und Acts über
@@ -97,8 +99,8 @@ Details: [`domain-model.md`](domain-model.md).
 - **v0.2 Phase 2** (T-10 bis T-14): Umstellung SQLite → PostgreSQL (Neon) – umgesetzt,
   freigegeben. Review-Punkte T-19 bis T-21 erledigt.
 - **v0.3:** US-7 (Tailwind, responsive) und US-8 (Tage gruppieren/filtern) umgesetzt,
-  reviewt und freigegeben ([`review.md`](review.md), Abschnitt 8); Review-Punkte T-22 bis
-  T-25 offen, nicht blockierend (T-26 erledigt). Die übrigen
+  reviewt und freigegeben ([`review.md`](review.md), Abschnitt 8); Review-Punkte T-24 und
+  T-25 offen, nicht blockierend (T-22, T-23 und T-26 erledigt). Die übrigen
   v0.3-Anforderungen stehen im Entwurf von [`requirements.md`](requirements.md), sind aber
   noch nicht als Stories im Backlog.
 - Tests: `python -m pytest`, 27 grün (Stand 2026-09-21).
@@ -120,9 +122,6 @@ Details: [`domain-model.md`](domain-model.md).
 - T-16: Test-Overrides in `tests/test_api.py` in eine Fixture mit Teardown überführen.
 - T-17: `StaticFiles`-Pfad in `app/main.py` hängt vom Arbeitsverzeichnis ab.
 - T-18: `Artist.name`/`Stage.name` nicht leer als DB-`CheckConstraint`.
-- T-22: „läuft jetzt"/„als Nächstes" nur farblich markiert, ohne Text-Badge.
-- T-23: Race Condition bei schnellem Filterwechsel (veraltete Antwort kann die Liste
-  überschreiben).
 - T-24: Leer-Hinweis unterscheidet nicht zwischen leerer DB und leerer Filterauswahl.
 - T-25: Seed-Logik über Mitternacht (`build_acts()`) ungetestet.
 
@@ -145,7 +144,7 @@ Details: [`domain-model.md`](domain-model.md).
    - Offline-Verfügbarkeit (C9, F10).
 3. Die Festival-Entität erfordert eine Erweiterung von Domain Model und Architektur (neue
    Entität, FKs von `Stage`/`Act`) – vor der Umsetzung dokumentieren.
-4. Nebenbei: nicht blockierende Punkte T-15 bis T-18 und T-22 bis T-25 abarbeiten.
+4. Nebenbei: nicht blockierende Punkte T-15 bis T-18, T-24 und T-25 abarbeiten.
 
 Weitere Quellen: [`../CLAUDE.md`](../CLAUDE.md), [`requirements.md`](requirements.md),
 [`backlog.md`](backlog.md), [`roadmap.md`](roadmap.md), [`review.md`](review.md).

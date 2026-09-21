@@ -22,7 +22,12 @@ function fillSelect(id, options) {
   }
 }
 
+// Counts loadProgram() calls. On a fast filter change the answers can arrive out of order;
+// only the answer to the latest request may render, otherwise the list would not match the filters.
+let latestProgramRequest = 0;
+
 async function loadProgram() {
+  const request = ++latestProgramRequest;
   const params = new URLSearchParams();
   const stage = document.getElementById("stage-filter").value;
   const day = document.getElementById("day-filter").value;
@@ -32,6 +37,7 @@ async function loadProgram() {
   const query = params.toString();
   const response = await fetch(query ? `/api/program?${query}` : "/api/program");
   const data = await response.json();
+  if (request !== latestProgramRequest) return; // stale answer, a newer request is pending
   renderNow(data.now);
   renderProgram(data.items);
 }
@@ -91,6 +97,12 @@ const STATUS_CLASSES = {
   next: "border-l-amber-500 bg-amber-50",
 };
 const NO_STATUS_CLASSES = "border-l-transparent";
+// Text badge, so the status does not rely on color alone.
+const BADGE_CLASSES = "ml-2 inline-block rounded-full px-2 py-0.5 align-middle text-xs font-medium";
+const STATUS_BADGES = {
+  now: { label: "läuft jetzt", classes: "bg-green-700 text-white" },
+  next: { label: "als Nächstes", classes: "bg-amber-200 text-amber-900" },
+};
 
 function renderItem(item) {
   const li = document.createElement("li");
@@ -103,6 +115,8 @@ function renderItem(item) {
   const title = document.createElement("span");
   title.className = "min-w-0 flex-1 font-semibold break-words";
   title.textContent = item.title;
+  const badge = STATUS_BADGES[item.status];
+  if (badge) title.appendChild(renderBadge(badge));
 
   const stage = document.createElement("span");
   stage.className = "shrink-0 text-sm text-gray-600 sm:text-right";
@@ -110,6 +124,13 @@ function renderItem(item) {
 
   li.append(time, title, stage);
   return li;
+}
+
+function renderBadge({ label, classes }) {
+  const badge = document.createElement("span");
+  badge.className = `${BADGE_CLASSES} ${classes}`;
+  badge.textContent = label;
+  return badge;
 }
 
 function formatTime(isoString) {

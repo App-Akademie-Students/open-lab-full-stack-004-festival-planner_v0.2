@@ -521,4 +521,10 @@ Race Condition, Leer-Hinweis), eine Testlücke im Seed und veraltete Stellen in
 `requirements.md`. Sie sind im Backlog als T-22 bis T-26 festgehalten.
 
 **Nachtrag 2026-09-21:** T-26 ist erledigt. In `requirements.md` sind die Statuszeile und der
-Absatz „Erweiterbarkeit" an den umgesetzten Stand angepasst. T-22 bis T-25 bleiben offen.
+Absatz „Erweiterbarkeit" an den umgesetzten Stand angepasst.
+
+**Nachtrag 2026-09-21 (2):** T-22 und T-23 sind erledigt. Neben der Farbe markiert jetzt ein
+Text-Badge („läuft jetzt" / „als Nächstes") den Status, und ein Anfragezähler in
+`loadProgram()` verwirft veraltete Antworten. T-23 wurde mit einem verzögerten Mock-`fetch`
+nachgestellt (langsame Antwort für Bühne A, schnelle für Bühne B, A vor B gewählt): Vorher
+zeigte die Liste A, jetzt zeigt sie B. T-24 und T-25 bleiben offen.
