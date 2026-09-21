@@ -8,7 +8,7 @@ sollen. Details stehen in den verlinkten Dokumenten unter `doc/`.
 
 - **Name:** Festival Planner
 - **Version/Phase:** v0.1 und v0.2 umgesetzt und reviewt. **v0.3 in Arbeit** – die
-  Anforderungen liegen als Entwurf vor, drei neue Stories sind umgesetzt (US-7, US-8, US-9).
+  Anforderungen liegen als Entwurf vor, vier neue Stories sind umgesetzt (US-7 bis US-10).
 - Lernprojekt: schrittweise Entwicklung mit Claude, Dokumentation auf Deutsch, Code auf
   Englisch.
 
@@ -89,6 +89,10 @@ Details: [`domain-model.md`](domain-model.md).
 - Mehrtägiges Programm, nach Tag gruppiert mit Überschrift wie „Fr, 18.09." (US-8).
 - Acts als Favorit merken (Stern ☆/★), nur im Browser gespeichert (`localStorage`), bleibt
   über ein Neuladen erhalten (US-9).
+- Persönlicher Zeitplan „Meine Favoriten" über dem Programm, als Akkordeon (beim Laden
+  zugeklappt, Kopfzeile mit Anzahl): immer alle Favoriten
+  chronologisch mit Tag, Zeit, Titel und Bühne, unabhängig vom Filter; Hinweis, solange
+  keine Favoriten gemerkt sind (US-10).
 - Responsive Oberfläche mit Tailwind CSS, ab 360 px ohne horizontales Scrollen (US-6, US-7).
 - Seed-Skript mit vier Festivaltagen ab heute, inkl. paralleler Acts und Acts über
   Mitternacht (US-1).
@@ -103,7 +107,8 @@ Details: [`domain-model.md`](domain-model.md).
   freigegeben. Review-Punkte T-19 bis T-21 erledigt.
 - **v0.3:** US-7 (Tailwind, responsive) und US-8 (Tage gruppieren/filtern) umgesetzt,
   reviewt und freigegeben ([`review.md`](review.md), Abschnitt 8); Review-Punkte daraus
-  (T-22 bis T-26) alle erledigt. US-9 (Favoriten merken) umgesetzt, noch nicht reviewt.
+  (T-22 bis T-26) alle erledigt. US-9 (Favoriten merken) und US-10 (persönlicher Zeitplan)
+  umgesetzt, noch nicht reviewt.
   Die übrigen v0.3-Anforderungen stehen im Entwurf von [`requirements.md`](requirements.md),
   sind aber noch nicht als Stories im Backlog. Die Festival-Entität ist bis auf Weiteres
   zurückgestellt.
@@ -131,7 +136,7 @@ Details: [`domain-model.md`](domain-model.md).
 
 ## 8. Nächste geplante Schritte
 
-1. Persönlicher Zeitplan (C8, F8) als nächste Story – baut direkt auf US-9 auf.
+1. US-9 und US-10 (Favoriten, persönlicher Zeitplan) testen und reviewen.
 2. Offene Fragen des v0.3-Entwurfs klären (siehe Abschnitt 7).
 3. Restliche v0.3-Anforderungen als User Stories ins Backlog übernehmen und priorisieren:
    - mehrere Festivals + Festivalauswahl (C4, C5, F5, B5, B6) – zurückgestellt,

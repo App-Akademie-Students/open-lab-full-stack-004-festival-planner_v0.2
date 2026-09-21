@@ -32,7 +32,58 @@ function toggleFavorite(id) {
     favorites.add(id);
   }
   saveFavorites();
+  renderFavorites();
   return favorites.has(id);
+}
+
+// All acts, unfiltered (US-10): the personal schedule shows every favorite, independent of the
+// day and stage filter, so it cannot use the filtered program list. Loaded once per page view.
+let allActs = null;
+
+async function loadAllActs() {
+  const response = await fetch("/api/program");
+  allActs = (await response.json()).items;
+  renderFavorites();
+}
+
+// Items come sorted by start time from the API, so filtering keeps the chronological order.
+// Stored ids without a matching act (e.g. after a data change) are simply skipped.
+function renderFavorites() {
+  if (allActs === null) return; // not loaded yet
+  const items = allActs.filter((item) => favorites.has(item.id));
+  const list = document.getElementById("favorites-list");
+
+  list.innerHTML = "";
+  for (const item of items) {
+    list.appendChild(renderFavoriteItem(item));
+  }
+  list.hidden = items.length === 0;
+  document.getElementById("favorites-empty").hidden = items.length > 0;
+  // Visible in the collapsed accordion, so the count is known without opening it.
+  document.getElementById("favorites-count").textContent = `(${items.length})`;
+  document.getElementById("favorites").hidden = false;
+}
+
+// Favorites can span several festival days, so each entry shows the day as well.
+function renderFavoriteItem(item) {
+  const li = document.createElement("li");
+  li.className = "flex flex-wrap items-baseline gap-x-3";
+
+  const time = document.createElement("span");
+  time.className = "shrink-0 text-gray-600 tabular-nums";
+  time.textContent =
+    `${formatDay(item.starts_at.slice(0, 10))} ${formatTime(item.starts_at)}–${formatTime(item.ends_at)}`;
+
+  const title = document.createElement("span");
+  title.className = "min-w-0 font-semibold break-words";
+  title.textContent = item.title;
+
+  const stage = document.createElement("span");
+  stage.className = "text-gray-600";
+  stage.textContent = item.stage;
+
+  li.append(time, title, stage);
+  return li;
 }
 
 async function loadFilters() {
@@ -212,3 +263,4 @@ function formatDay(isoDate) {
 
 loadFilters();
 loadProgram();
+loadAllActs();

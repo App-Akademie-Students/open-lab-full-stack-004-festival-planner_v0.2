@@ -31,6 +31,19 @@
         </div>
       </div>
     </header>
+    <!-- Personal schedule (US-10): all favorites, independent of the filters, rendered by app.js.
+         Native <details> accordion, collapsed by default (no "open" attribute). -->
+    <details id="favorites" class="group mb-6 rounded-lg bg-white shadow-sm" hidden>
+      <!-- flex hides the native marker, so the chevron is drawn here and turns when open -->
+      <summary class="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-4 font-semibold text-gray-800 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-indigo-500">
+        <span aria-hidden="true" class="text-gray-500 transition-transform group-open:rotate-90">▸</span>
+        Meine Favoriten <span id="favorites-count" class="font-normal text-gray-600"></span>
+      </summary>
+      <div class="px-4 pb-4">
+        <p id="favorites-empty" class="text-sm text-gray-600" hidden>Noch keine Favoriten. Tippe im Programm auf ☆, um dir einen Act zu merken.</p>
+        <ul id="favorites-list" class="max-h-60 space-y-2 overflow-y-auto text-sm"></ul>
+      </div>
+    </details>
     <p id="empty-hint" class="rounded-lg bg-white p-4 text-gray-600 shadow-sm" hidden>Es sind noch keine Programmpunkte vorhanden.</p>
     <!-- One section per festival day (heading + list), rendered by app.js -->
     <div id="program" class="space-y-6"></div>

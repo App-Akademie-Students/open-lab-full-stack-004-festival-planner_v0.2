@@ -256,9 +256,9 @@ Langfristig, ohne aktuellen Bedarf: `create_all` beim App-Start durch Migratione
 
 ## v0.3 – Neue Anforderungen
 
-Abgeleitet aus dem Entwurf v0.3 in [`requirements.md`](requirements.md). Bisher sind US-7,
-US-8 und US-9 aufgenommen und umgesetzt; die übrigen neuen Anforderungen (C4 mehrere
-Festivals, C5, C8, C9, F5, F8, F10, B5, B6 Festival-Teil, B7) sind noch nicht ins Backlog
+Abgeleitet aus dem Entwurf v0.3 in [`requirements.md`](requirements.md). US-7, US-8 und
+US-9 und US-10 sind umgesetzt; die übrigen neuen Anforderungen (C4 mehrere
+Festivals, C5, C9, F5, F10, B5, B6 Festival-Teil, B7) sind noch nicht ins Backlog
 übernommen. Die Festival-Entität (C4, C5, F5, B5) ist bis auf Weiteres zurückgestellt.
 
 | ID | Titel | Abhängig von | Anforderungen | Status |
@@ -266,6 +266,7 @@ Festivals, C5, C8, C9, F5, F8, F10, B5, B6 Festival-Teil, B7) sind noch nicht in
 | US-7 | Responsive Darstellung mit Tailwind CSS | US-6 | C10, F4, F9, T1 | erledigt |
 | US-8 | Programm nach Tag gruppieren und filtern | US-2 | C4 (Mehrtägigkeit), C6, F6, B4, B6 (Tagesfilter) | erledigt |
 | US-9 | Acts als Favorit merken | US-2 | C7, F7 | erledigt |
+| US-10 | Persönlicher Zeitplan über dem Programm | US-9 | C8, F8 | erledigt |
 
 ### US-7 · Responsive Darstellung mit Tailwind CSS
 
@@ -338,8 +339,8 @@ Details: [`architecture.md`](architecture.md#festivaltage).
 - [x] Der Schalter ist auf dem Smartphone (360 px) per Touch bedienbar (mind. 44 px), ohne
       horizontales Scrollen.
 
-Nicht Teil von US-9: die eigene Ansicht „persönlicher Zeitplan" (C8, F8) – folgt als eigene
-Story.
+Nicht Teil von US-9: der persönliche Zeitplan als kompakter Bereich über dem Programm (C8, F8) –
+siehe US-10.
 
 **US-9 – Umsetzung (2026-09-21):** Nur Frontend (`static/app.js`), kein Backend-Umbau. Ein
 Stern-Button pro Act (☆/★, `aria-pressed`, 44 px) schaltet den Favoriten um; gespeichert wird
@@ -353,6 +354,44 @@ importiert oder geändert (B7), kann eine gespeicherte `id` auf einen anderen Ac
 dann neu bewerten. Geprüft mit Headless-Chrome und Mock-`fetch`: Markieren, Filterwechsel,
 Neuladen (Favorit bleibt), blockierter Speicher (Seite läuft, keine Fehler); Layout bei 360 px
 und 1280 px mit echten Seed-Daten.
+
+### US-10 · Persönlicher Zeitplan über dem Programm
+
+> Als **Besucher** möchte ich meine gemerkten Acts kompakt oben auf der Seite sehen, damit ich
+> ohne Suchen im ganzen Programm weiß, wann und wo meine Acts spielen.
+
+- [x] Oberhalb des Programms steht ein kompakter Bereich mit allen Favoriten, chronologisch
+      sortiert, je Eintrag Titel, Bühne, Start- und Endzeit sowie der Tag (Favoriten können
+      über mehrere Festivaltage verteilt sein).
+- [x] Der Bereich zeigt immer alle Favoriten, unabhängig von Tages- und Bühnenfilter.
+- [x] Sind keine Favoriten gemerkt, zeigt der Bereich einen kurzen Hinweis, wie man Acts per
+      Stern merkt.
+- [x] Markieren oder Entfernen eines Favoriten in der Liste aktualisiert den Bereich sofort,
+      ohne Neuladen.
+- [x] Gespeicherte Favoriten-`id`s, zu denen es keinen Act mehr gibt, werden ohne Fehler
+      ignoriert.
+- [x] Der Bereich bleibt auf dem Smartphone (360 px) kompakt und lesbar, ohne horizontales
+      Scrollen, und schiebt das Programm nicht unnötig weit nach unten.
+- [x] Kein Backend-Umbau nötig, Favoriten bleiben ausschließlich im Browser (wie US-9).
+- [x] Der Bereich ist ein Akkordeon: per Tippen auf die Kopfzeile auf- und zuklappbar, beim
+      Laden der Seite zugeklappt. Die Kopfzeile zeigt auch zugeklappt die Anzahl der Favoriten
+      und ist per Tastatur und Screenreader bedienbar (Touch-Ziel mind. 44 px).
+
+**US-10 – Umsetzung (2026-09-21):** Nur Frontend (`static/index.html`, `static/app.js`,
+neu erzeugtes `static/style.css`). **Entscheidung – Datenquelle:** Die Programmliste lädt
+gefiltert, der Bereich braucht aber alle Acts. `app.js` ruft deshalb beim Seitenaufruf einmal
+zusätzlich `GET /api/program` ohne Filter ab und filtert clientseitig auf die Favoriten; kein
+neuer Endpunkt. Die Liste ist auf `max-h-60` begrenzt und scrollt bei vielen Favoriten intern.
+Geprüft mit Headless-Chrome gegen die Seed-Daten: leerer Zustand (Hinweis), drei Favoriten über
+zwei Tage plus eine unbekannte `id` (chronologisch, `id` ignoriert), Tages- und Bühnenfilter
+gesetzt (Bereich unverändert), Stern setzen/entfernen (Bereich sofort aktualisiert), 360 px ohne
+horizontales Scrollen.
+**Änderung – Akkordeon (2026-09-21):** Natives `<details>`/`<summary>` ohne `open`-Attribut,
+also zugeklappt beim Laden; kein zusätzliches JS für das Auf- und Zuklappen. Die Kopfzeile zeigt
+„Meine Favoriten (n)". Der Zustand wird nicht gespeichert – nach dem Neuladen ist der Bereich
+wieder zugeklappt. Geprüft mit Headless-Chrome: zugeklappt beim Laden, Aufklappen per Klick,
+Anzahl aktualisiert sich beim Stern-Klick, Bereich bleibt dabei offen, 360 px ohne horizontales
+Scrollen.
 
 ## Bewusst nicht im Backlog
 

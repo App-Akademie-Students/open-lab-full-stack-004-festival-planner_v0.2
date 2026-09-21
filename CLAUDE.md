@@ -22,7 +22,8 @@ Abschnitt 7 zur PostgreSQL-Umstellung), beide ohne Blocker. Die nicht blockieren
 v0.3 ist als Entwurf in `doc/requirements.md` aufgenommen. Davon umgesetzt: US-7 (responsive
 Darstellung mit Tailwind CSS) und US-8 (Programm nach Tag gruppieren und filtern), beide in
 `doc/review.md` (Abschnitt 8) ohne Blocker freigegeben; die Änderungswünsche daraus (T-22 bis
-T-26) sind alle erledigt. Ebenfalls umgesetzt: US-9 (Acts als Favorit merken, nur im Browser).
+T-26) sind alle erledigt. Ebenfalls umgesetzt: US-9 (Acts als Favorit merken, nur im Browser)
+und US-10 (persönlicher Zeitplan als Bereich „Meine Favoriten" über dem Programm).
 Die übrigen v0.3-Anforderungen sind noch nicht im Backlog; die Festival-Entität ist bis auf
 Weiteres zurückgestellt.
 
@@ -81,9 +82,9 @@ Die Anforderungen (Muss / optional / Benutzeraktionen / Scope-Abgrenzung) sind i
 
 Kurzfassung (umgesetzter Stand): Ein Festival über einen oder mehrere Tage, Programm als
 chronologische Liste, nach Tag gruppiert, Filter nach Tag und Bühne, Anzeige „läuft jetzt /
-kommt als Nächstes", responsive mit Tailwind CSS, Favoriten im Browser (`localStorage`).
-Daten per Seed, kein Login.
-Weitere v0.3-Anforderungen (mehrere Festivals, persönlicher Zeitplan, Import, Offline) sind in
+kommt als Nächstes", responsive mit Tailwind CSS, Favoriten im Browser (`localStorage`) mit
+persönlichem Zeitplan über dem Programm. Daten per Seed, kein Login.
+Weitere v0.3-Anforderungen (mehrere Festivals, Import, Offline) sind in
 `doc/requirements.md` als Entwurf aufgenommen, aber noch nicht umgesetzt.
 
 ## Architecture

@@ -282,6 +282,16 @@ passenden FK-Referenzen.
   blockierte Website-Daten) gelten die Favoriten nur bis zum Neuladen. Die `id` als Kennung
   reicht, solange die Daten nur per Seed entstehen (deterministisch, Tabellen werden neu
   angelegt); mit einem Import (B7) ist das neu zu bewerten.
+- Persönlicher Zeitplan (US-10): Bereich „Meine Favoriten" über dem Programm, immer mit allen
+  Favoriten (Tag, Uhrzeit, Titel, Bühne), unabhängig vom Filter. Dafür lädt `app.js` beim
+  Seitenaufruf einmal zusätzlich `GET /api/program` ohne Filter und filtert clientseitig auf
+  die Favoriten-`id`s; die gefilterte Programmliste lässt sich dafür nicht nutzen. Kein neuer
+  Endpunkt. Unbekannte `id`s fallen dabei stillschweigend weg. Ein Stern-Klick rendert den
+  Bereich sofort neu. Die Liste ist auf `max-h-60` begrenzt und scrollt intern, damit viele
+  Favoriten das Programm nicht weit nach unten schieben. Der Bereich ist ein natives
+  `<details>`-Akkordeon, beim Laden zugeklappt; die Kopfzeile zeigt die Anzahl. Nicht
+  offensichtlich: `display: flex` am `<summary>` blendet den nativen Pfeil aus, deshalb steht
+  ein eigener Pfeil im Markup, der sich per `group-open:rotate-90` dreht.
 - Mobil steht die Bühne in einer eigenen Zeile unter Zeit, Titel und Stern (`order-last
   basis-full`), ab `sm` wieder im Raster Zeit | Titel | Bühne | Stern.
 - Aktualisierung durch Neuladen der Seite – keine Echtzeit-Updates (Scope-Abgrenzung).

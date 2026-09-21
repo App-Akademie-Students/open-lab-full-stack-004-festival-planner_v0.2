@@ -1,8 +1,8 @@
 # Anforderungen
 
 Status: Entwurf v0.3, Stand 2026-09-21 – teilweise umgesetzt: Mehrtägigkeit mit Tagesfilter
-(C6, F6, Tages-Teil von B6), Tailwind CSS/responsive (C10, F4, F9) und Favoriten merken (C7, F7)
-über US-7, US-8 und US-9. Mehrere Festivals, persönlicher Zeitplan (C8, F8), Import und
+(C6, F6, Tages-Teil von B6), Tailwind CSS/responsive (C10, F4, F9), Favoriten merken (C7, F7)
+und persönlicher Zeitplan (C8, F8) über US-7 bis US-10. Mehrere Festivals, Import und
 Offline-Verfügbarkeit sind noch nicht umgesetzt.
 Vorherige bestätigte Stände sind eingefroren unter
 [`requirements-history/requirements-v0.2.md`](requirements-history/requirements-v0.2.md)
@@ -55,7 +55,7 @@ nicht-funktionale Rahmenbedingungen).
 | F5 | Das Festival kann ausgewählt werden; Programm, Bühnen und Tage beziehen sich auf das gewählte Festival. |
 | F6 | Die Liste ist nach Tag gruppiert und kann auf einen Tag gefiltert werden. |
 | F7 | Acts können als Favorit markiert und wieder entfernt werden. Favoriten werden clientseitig im Browser gespeichert und bleiben über ein Neuladen der Seite erhalten. |
-| F8 | Eine eigene Ansicht zeigt den persönlichen Zeitplan: nur die Favoriten, chronologisch sortiert (Titel, Bühne, Startzeit, Endzeit). |
+| F8 | Ein kompakter Bereich oberhalb des Programms zeigt den persönlichen Zeitplan: nur die Favoriten, chronologisch sortiert (Titel, Bühne, Startzeit, Endzeit). Er zeigt immer alle Favoriten, unabhängig von Tages- und Bühnenfilter; ohne Favoriten erscheint ein Hinweis. Der Bereich lässt sich auf- und zuklappen und ist beim Laden der Seite zugeklappt. |
 | F9 | Die Oberfläche wird mit Tailwind CSS gestaltet und ist responsive (Smartphone bis Desktop). |
 | F10 | Nach einmaligem Laden sind Seite und zuletzt geladene Programmdaten auch ohne Netzverbindung verfügbar. |
 
@@ -95,7 +95,6 @@ O2), ebenfalls ohne Umbau von `Act`. Details:
   jedes Festival eine eigene Zeitzone?
 - B7: Form des Imports (Datenformat, Endpunkt oder Skript) und Art des Zugriffsschutzes.
 - B5: Gehört ein `Artist` zu einem Festival oder wird er festivalübergreifend geteilt?
-
 ## Optionale Anforderungen (später)
 
 - O2 – Detailansicht pro Programmpunkt (Beschreibung, Genre).
