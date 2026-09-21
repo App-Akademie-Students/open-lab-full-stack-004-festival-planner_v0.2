@@ -34,7 +34,7 @@ festival-planner/
 ├── static/
 │   ├── index.html         die einzige Seite
 │   ├── style.css          von der Tailwind-CLI erzeugt (eingecheckt, nicht von Hand ändern)
-│   └── app.js             API abrufen, Liste rendern, Tages-/Bühnenfilter, Status-Klassen und -Badges
+│   └── app.js             API abrufen, Liste rendern, Tages-/Bühnenfilter, Status-Badges, Favoriten
 ├── tailwind/
 │   └── input.css          Tailwind-Quelle für static/style.css
 ├── tests/
@@ -267,7 +267,7 @@ passenden FK-Referenzen.
   ein Text-Badge „läuft jetzt" / „als Nächstes" hinter dem Titel (`STATUS_BADGES`), damit der
   Status nicht nur über die Farbe erkennbar ist (T-22).
 - Gestaltung mit Tailwind CSS (F9): Mobil (ab 360 px) untereinander umbrechend, ab `sm`
-  (640 px) als Raster Zeit | Titel | Bühne, Inhalt auf `max-w-3xl` begrenzt.
+  (640 px) als Raster Zeit | Titel | Bühne | Stern, Inhalt auf `max-w-3xl` begrenzt.
 - CSS-Build: `tailwind/input.css` → `static/style.css` über die Tailwind-CLI (Standalone-Binary,
   kein Node/npm). Nicht offensichtlich: Tailwind erzeugt nur Klassen, die es als vollständige
   Strings in `static/` findet – dynamisch zusammengesetzte Klassennamen fehlen im CSS.
@@ -275,6 +275,15 @@ passenden FK-Referenzen.
   Befehle: [`../CLAUDE.md`](../CLAUDE.md#build-css-nur-bei-änderungen-am-frontend).
 - Leere Liste: Ohne Filter lautet der Hinweis „Es sind noch keine Programmpunkte vorhanden.",
   mit gesetztem Tages- oder Bühnenfilter „Für diese Auswahl gibt es keine Acts." (T-24).
+- Favoriten (US-9): Stern-Button pro Eintrag (☆/★, `aria-pressed`). Gespeichert wird nur im
+  Browser, als JSON-Array von Act-`id`s im `localStorage` (Schlüssel
+  `festival-planner.favorites`) – keine Übertragung an den Server, kein Backend-Anteil.
+  Lesen und Schreiben stehen in `try/catch`: Ohne verfügbaren Speicher (privater Modus,
+  blockierte Website-Daten) gelten die Favoriten nur bis zum Neuladen. Die `id` als Kennung
+  reicht, solange die Daten nur per Seed entstehen (deterministisch, Tabellen werden neu
+  angelegt); mit einem Import (B7) ist das neu zu bewerten.
+- Mobil steht die Bühne in einer eigenen Zeile unter Zeit, Titel und Stern (`order-last
+  basis-full`), ab `sm` wieder im Raster Zeit | Titel | Bühne | Stern.
 - Aktualisierung durch Neuladen der Seite – keine Echtzeit-Updates (Scope-Abgrenzung).
 
 ## Tests

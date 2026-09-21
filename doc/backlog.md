@@ -256,14 +256,16 @@ Langfristig, ohne aktuellen Bedarf: `create_all` beim App-Start durch Migratione
 
 ## v0.3 – Neue Anforderungen
 
-Abgeleitet aus dem Entwurf v0.3 in [`requirements.md`](requirements.md). Bisher sind US-7 und
-US-8 aufgenommen; die übrigen neuen Anforderungen (C4 mehrere Festivals, C5, C7–C9, F5, F7,
-F8, F10, B5, B6 Festival-Teil, B7) sind noch nicht ins Backlog übernommen.
+Abgeleitet aus dem Entwurf v0.3 in [`requirements.md`](requirements.md). Bisher sind US-7,
+US-8 und US-9 aufgenommen und umgesetzt; die übrigen neuen Anforderungen (C4 mehrere
+Festivals, C5, C8, C9, F5, F8, F10, B5, B6 Festival-Teil, B7) sind noch nicht ins Backlog
+übernommen. Die Festival-Entität (C4, C5, F5, B5) ist bis auf Weiteres zurückgestellt.
 
 | ID | Titel | Abhängig von | Anforderungen | Status |
 |---|---|---|---|---|
 | US-7 | Responsive Darstellung mit Tailwind CSS | US-6 | C10, F4, F9, T1 | erledigt |
 | US-8 | Programm nach Tag gruppieren und filtern | US-2 | C4 (Mehrtägigkeit), C6, F6, B4, B6 (Tagesfilter) | erledigt |
+| US-9 | Acts als Favorit merken | US-2 | C7, F7 | erledigt |
 
 ### US-7 · Responsive Darstellung mit Tailwind CSS
 
@@ -317,6 +319,40 @@ Tailwind CSS (Tailwind-CLI), die T1 ausdrücklich erlaubt.
 Gruppierung und Tages-Dropdown in `static/app.js`. Bei Auswahl eines späteren Tages ist dessen
 erster Act „als Nächstes" markiert – konsistent mit der Regel „Status nach dem Filter".
 Details: [`architecture.md`](architecture.md#festivaltage).
+
+### US-9 · Acts als Favorit merken
+
+> Als **Besucher** möchte ich Acts als Favorit markieren, ohne mich anzumelden, damit ich mir
+> merken kann, welche Acts ich sehen will.
+
+- [x] Jeder Act in der Liste hat einen Favoriten-Schalter; ein Tippen markiert den Act als
+      Favorit, ein erneutes Tippen entfernt die Markierung.
+- [x] Favorit und Nicht-Favorit sind nicht nur über die Farbe unterscheidbar (Symbol ★/☆) und
+      für Screenreader beschriftet.
+- [x] Favoriten werden ausschließlich im Browser gespeichert (`localStorage`) und bleiben über
+      ein Neuladen der Seite erhalten – kein Login, keine Übertragung an den Server.
+- [x] Die Markierung gilt unabhängig von Tages- und Bühnenfilter: Ein Favorit bleibt markiert,
+      wenn er nach einem Filterwechsel wieder angezeigt wird.
+- [x] Ist der Browser-Speicher nicht verfügbar (z. B. privater Modus, blockiert), funktioniert
+      die Seite weiter; Favoriten gelten dann nur bis zum Neuladen.
+- [x] Der Schalter ist auf dem Smartphone (360 px) per Touch bedienbar (mind. 44 px), ohne
+      horizontales Scrollen.
+
+Nicht Teil von US-9: die eigene Ansicht „persönlicher Zeitplan" (C8, F8) – folgt als eigene
+Story.
+
+**US-9 – Umsetzung (2026-09-21):** Nur Frontend (`static/app.js`), kein Backend-Umbau. Ein
+Stern-Button pro Act (☆/★, `aria-pressed`, 44 px) schaltet den Favoriten um; gespeichert wird
+ein Array von Act-`id`s unter dem Schlüssel `festival-planner.favorites` im `localStorage`.
+Lesen und Schreiben stehen in `try/catch`, damit die Seite ohne Speicher weiterläuft. Auf dem
+Smartphone rutscht die Bühne in eine eigene Zeile unter Zeit und Titel, weil der Stern den
+Titel sonst so schmal drückt, dass Wörter mitten im Wort umbrechen.
+**Entscheidung – Kennung:** die Act-`id` aus der API. Sie bleibt beim Neu-Seeden gleich (der
+Seed ist deterministisch und legt die Tabellen neu an). Einschränkung: Werden Daten später
+importiert oder geändert (B7), kann eine gespeicherte `id` auf einen anderen Act zeigen –
+dann neu bewerten. Geprüft mit Headless-Chrome und Mock-`fetch`: Markieren, Filterwechsel,
+Neuladen (Favorit bleibt), blockierter Speicher (Seite läuft, keine Fehler); Layout bei 360 px
+und 1280 px mit echten Seed-Daten.
 
 ## Bewusst nicht im Backlog
 

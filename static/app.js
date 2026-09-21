@@ -1,5 +1,40 @@
 const WEEKDAYS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 
+// Favorites (US-9) live only in this browser: a list of act ids in localStorage, never sent
+// to the server. The id is stable across re-seeding because the seed is deterministic and
+// restarts the id sequences.
+const FAVORITES_KEY = "festival-planner.favorites";
+const favorites = loadFavorites();
+
+// localStorage can be missing or throw (private mode, blocked site data). The page must work
+// anyway, so favorites then only last until the next reload.
+function loadFavorites() {
+  try {
+    const ids = JSON.parse(localStorage.getItem(FAVORITES_KEY));
+    return new Set(Array.isArray(ids) ? ids : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveFavorites() {
+  try {
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favorites]));
+  } catch {
+    // Storage unavailable: keep the in-memory favorites for this page view.
+  }
+}
+
+function toggleFavorite(id) {
+  if (favorites.has(id)) {
+    favorites.delete(id);
+  } else {
+    favorites.add(id);
+  }
+  saveFavorites();
+  return favorites.has(id);
+}
+
 async function loadFilters() {
   const [stages, days] = await Promise.all([
     fetch("/api/stages").then((response) => response.json()),
@@ -97,8 +132,8 @@ function renderDay(day, items) {
 // Tailwind only generates classes it finds in static/, so they are written out in full here
 // (no string building like `bg-${color}-100`).
 const ITEM_CLASSES =
-  "flex flex-wrap items-baseline gap-x-3 gap-y-1 border-l-4 px-4 py-3 " +
-  "sm:grid sm:grid-cols-[7rem_1fr_10rem] sm:gap-4";
+  "flex flex-wrap items-center gap-x-3 gap-y-1 border-l-4 px-4 py-3 " +
+  "sm:grid sm:grid-cols-[7rem_1fr_10rem_2.75rem] sm:gap-4";
 const STATUS_CLASSES = {
   now: "border-l-green-600 bg-green-50",
   next: "border-l-amber-500 bg-amber-50",
@@ -110,6 +145,12 @@ const STATUS_BADGES = {
   now: { label: "läuft jetzt", classes: "bg-green-700 text-white" },
   next: { label: "als Nächstes", classes: "bg-amber-200 text-amber-900" },
 };
+// 44 px touch target; the negative margin keeps the row as compact as before.
+// Filled vs. outlined star, so the state does not rely on color alone.
+const FAVORITE_BUTTON_CLASSES =
+  "-my-2 flex size-11 shrink-0 items-center justify-center rounded-full text-2xl leading-none " +
+  "text-gray-400 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-indigo-500 " +
+  "aria-pressed:text-amber-500";
 
 function renderItem(item) {
   const li = document.createElement("li");
@@ -126,11 +167,28 @@ function renderItem(item) {
   if (badge) title.appendChild(renderBadge(badge));
 
   const stage = document.createElement("span");
-  stage.className = "shrink-0 text-sm text-gray-600 sm:text-right";
+  // Mobile: own line below time/title/star, so the star does not squeeze the title.
+  stage.className =
+    "order-last basis-full text-sm text-gray-600 sm:order-none sm:basis-auto sm:text-right";
   stage.textContent = item.stage;
 
-  li.append(time, title, stage);
+  li.append(time, title, stage, renderFavoriteButton(item));
   return li;
+}
+
+function renderFavoriteButton(item) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = FAVORITE_BUTTON_CLASSES;
+  button.setAttribute("aria-label", `${item.title} als Favorit merken`);
+  showFavoriteState(button, favorites.has(item.id));
+  button.addEventListener("click", () => showFavoriteState(button, toggleFavorite(item.id)));
+  return button;
+}
+
+function showFavoriteState(button, isFavorite) {
+  button.setAttribute("aria-pressed", String(isFavorite));
+  button.textContent = isFavorite ? "★" : "☆";
 }
 
 function renderBadge({ label, classes }) {

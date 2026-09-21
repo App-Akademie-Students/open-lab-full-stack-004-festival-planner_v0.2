@@ -1,8 +1,9 @@
 # Anforderungen
 
 Status: Entwurf v0.3, Stand 2026-09-21 – teilweise umgesetzt: Mehrtägigkeit mit Tagesfilter
-(C6, F6, Tages-Teil von B6) und Tailwind CSS/responsive (C10, F4, F9) über US-7 und US-8.
-Mehrere Festivals, Favoriten, Import und Offline-Verfügbarkeit sind noch nicht umgesetzt.
+(C6, F6, Tages-Teil von B6), Tailwind CSS/responsive (C10, F4, F9) und Favoriten merken (C7, F7)
+über US-7, US-8 und US-9. Mehrere Festivals, persönlicher Zeitplan (C8, F8), Import und
+Offline-Verfügbarkeit sind noch nicht umgesetzt.
 Vorherige bestätigte Stände sind eingefroren unter
 [`requirements-history/requirements-v0.2.md`](requirements-history/requirements-v0.2.md)
 (eintägiges Festival, ein Festival pro Instanz, kein Build-Tooling) und

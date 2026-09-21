@@ -105,7 +105,8 @@ erDiagram
 - „läuft jetzt" / „als Nächstes" – weiterhin zur Laufzeit berechnet, unabhängig vom Schema.
 - Sortierreihenfolge – Query (`ORDER BY starts_at, stage`).
 - Festival, Tag/Datum als eigene Entität, Genre, Beschreibung, Künstlerprofil.
-- Nutzer, Sessions, Favoriten, Merkzettel (C1 – kein Login).
+- Nutzer, Sessions, Favoriten, Merkzettel (C1 – kein Login). Favoriten gibt es seit US-9,
+  aber nur im Browser des Besuchers (F7), nicht in der Datenbank.
 
 ## Migration von `ProgramItem` (Hinweis für die Umsetzung)
 

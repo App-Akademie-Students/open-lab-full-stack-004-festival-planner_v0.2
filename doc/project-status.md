@@ -8,8 +8,7 @@ sollen. Details stehen in den verlinkten Dokumenten unter `doc/`.
 
 - **Name:** Festival Planner
 - **Version/Phase:** v0.1 und v0.2 umgesetzt und reviewt. **v0.3 in Arbeit** – die
-  Anforderungen liegen als Entwurf vor, zwei von mehreren neuen Stories sind umgesetzt
-  (US-7, US-8).
+  Anforderungen liegen als Entwurf vor, drei neue Stories sind umgesetzt (US-7, US-8, US-9).
 - Lernprojekt: schrittweise Entwicklung mit Claude, Dokumentation auf Deutsch, Code auf
   Englisch.
 
@@ -76,7 +75,7 @@ Act    (id, artist_id FK, stage_id FK, starts_at, ends_at)
 - `ends_at > starts_at` und nicht leere Namen (`Artist`, `Stage`) sind zusätzlich DB-seitig
   als `CheckConstraint` erzwungen.
 - Nicht gespeichert, sondern zur Laufzeit berechnet: Status „now"/„next", Sortierung, Tage.
-- Keine Entitäten für Festival, Tag, Nutzer oder Favoriten.
+- Keine Entitäten für Festival, Tag, Nutzer oder Favoriten (Favoriten liegen nur im Browser).
 
 Details: [`domain-model.md`](domain-model.md).
 
@@ -88,6 +87,8 @@ Details: [`domain-model.md`](domain-model.md).
 - Filter nach Bühne (US-5) und nach Tag, kombinierbar (US-8); bei schnellem Filterwechsel
   wird nur die Antwort auf die letzte Auswahl angezeigt (T-23).
 - Mehrtägiges Programm, nach Tag gruppiert mit Überschrift wie „Fr, 18.09." (US-8).
+- Acts als Favorit merken (Stern ☆/★), nur im Browser gespeichert (`localStorage`), bleibt
+  über ein Neuladen erhalten (US-9).
 - Responsive Oberfläche mit Tailwind CSS, ab 360 px ohne horizontales Scrollen (US-6, US-7).
 - Seed-Skript mit vier Festivaltagen ab heute, inkl. paralleler Acts und Acts über
   Mitternacht (US-1).
@@ -102,9 +103,10 @@ Details: [`domain-model.md`](domain-model.md).
   freigegeben. Review-Punkte T-19 bis T-21 erledigt.
 - **v0.3:** US-7 (Tailwind, responsive) und US-8 (Tage gruppieren/filtern) umgesetzt,
   reviewt und freigegeben ([`review.md`](review.md), Abschnitt 8); Review-Punkte daraus
-  (T-22 bis T-26) alle erledigt. Die übrigen
-  v0.3-Anforderungen stehen im Entwurf von [`requirements.md`](requirements.md), sind aber
-  noch nicht als Stories im Backlog.
+  (T-22 bis T-26) alle erledigt. US-9 (Favoriten merken) umgesetzt, noch nicht reviewt.
+  Die übrigen v0.3-Anforderungen stehen im Entwurf von [`requirements.md`](requirements.md),
+  sind aber noch nicht als Stories im Backlog. Die Festival-Entität ist bis auf Weiteres
+  zurückgestellt.
 - Tests: `python -m pytest`, 36 grün (Stand 2026-09-21).
 
 ## 7. Offene Entscheidungen und bekannte Probleme
@@ -122,18 +124,20 @@ Details: [`domain-model.md`](domain-model.md).
 - Tests decken die PostgreSQL-spezifische Infrastruktur (URL-Normalisierung, psycopg) nicht
   ab, da sie gegen In-Memory-SQLite laufen; auch sie brauchen trotzdem eine gesetzte
   `DATABASE_URL`.
+- Favoriten merken sich die Act-`id`. Das ist stabil, solange die Daten nur per Seed
+  entstehen; mit einem Import (B7) kann eine gespeicherte `id` auf einen anderen Act zeigen.
 - `domain-model.md` beschreibt noch „eine Instanz = ein Festival" (Stand v0.2); das passt
   nicht mehr zum v0.3-Entwurf mit mehreren Festivals und wird mit dessen Umsetzung angepasst.
 
 ## 8. Nächste geplante Schritte
 
-1. Offene Fragen des v0.3-Entwurfs klären (siehe Abschnitt 7).
-2. Restliche v0.3-Anforderungen als User Stories ins Backlog übernehmen und priorisieren:
-   - mehrere Festivals + Festivalauswahl (C4, C5, F5, B5, B6),
-   - Favoriten und persönlicher Zeitplan im Browser (C7, C8, F7, F8),
+1. Persönlicher Zeitplan (C8, F8) als nächste Story – baut direkt auf US-9 auf.
+2. Offene Fragen des v0.3-Entwurfs klären (siehe Abschnitt 7).
+3. Restliche v0.3-Anforderungen als User Stories ins Backlog übernehmen und priorisieren:
+   - mehrere Festivals + Festivalauswahl (C4, C5, F5, B5, B6) – zurückgestellt,
    - Datenimport über einen geschützten Backend-Zugang (B7),
    - Offline-Verfügbarkeit (C9, F10).
-3. Die Festival-Entität erfordert eine Erweiterung von Domain Model und Architektur (neue
+4. Die Festival-Entität erfordert eine Erweiterung von Domain Model und Architektur (neue
    Entität, FKs von `Stage`/`Act`) – vor der Umsetzung dokumentieren.
 
 Weitere Quellen: [`../CLAUDE.md`](../CLAUDE.md), [`requirements.md`](requirements.md),
