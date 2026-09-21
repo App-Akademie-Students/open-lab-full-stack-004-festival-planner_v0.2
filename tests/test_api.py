@@ -10,6 +10,7 @@ from sqlalchemy.pool import StaticPool
 from app.db import Base, get_db
 from app.main import app
 from app.models import Act, Artist, Stage
+from app.schedule import festival_now
 
 # In-memory SQLite only exists per connection - StaticPool makes every
 # session share the same connection, so all sessions see the same data.
@@ -33,12 +34,17 @@ def override_festival_now():
     return datetime(2026, 9, 11, 14, 0)
 
 
-app.dependency_overrides[get_db] = override_get_db
-from app.schedule import festival_now  # noqa: E402
-
-app.dependency_overrides[festival_now] = override_festival_now
-
 client = TestClient(app)
+
+
+# Overrides are set per test and removed afterwards, so they cannot leak into other test
+# modules that use the same app object.
+@pytest.fixture(autouse=True)
+def override_dependencies():
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[festival_now] = override_festival_now
+    yield
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture(autouse=True)

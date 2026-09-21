@@ -16,9 +16,8 @@ ebenfalls umgesetzt, in zwei Phasen: Refactoring Phase 1 (T-1 bis T-9) mit `Arti
 `schedule.py`, `routers.py`, `main.py`, `seed.py`; Refactoring Phase 2 (T-10 bis T-13) mit der
 Umstellung der Datenbank von SQLite auf PostgreSQL (Neon). Testen und Reviewen
 ist für beide Phasen erledigt und in `doc/review.md` freigegeben (Abschnitt 6 zu Phase 1,
-Abschnitt 7 zur PostgreSQL-Umstellung), beide ohne Blocker. Offen sind nur die nicht
-blockierenden Änderungswünsche aus dem Backlog: T-19 bis T-21 sind umgesetzt, offen sind
-noch T-15 bis T-18.
+Abschnitt 7 zur PostgreSQL-Umstellung), beide ohne Blocker. Die nicht blockierenden
+Änderungswünsche daraus (T-15 bis T-21) sind alle umgesetzt.
 
 v0.3 ist als Entwurf in `doc/requirements.md` aufgenommen. Davon umgesetzt: US-7 (responsive
 Darstellung mit Tailwind CSS) und US-8 (Programm nach Tag gruppieren und filtern), beide in
@@ -203,8 +202,8 @@ Die erzeugte `static/style.css` wird mit eingecheckt.
 python -m app.seed
 ```
 
-Legt die Tabellen in der über `DATABASE_URL` konfigurierten PostgreSQL-Datenbank an bzw.
-setzt sie zurück und füllt das Programm für vier Tage ab dem heutigen Datum.
+Löscht die Tabellen in der über `DATABASE_URL` konfigurierten PostgreSQL-Datenbank, legt sie
+neu an (so kommen auch Schemaänderungen wie neue Constraints an) und füllt das Programm für vier Tage ab dem heutigen Datum.
 
 ### Start backend
 

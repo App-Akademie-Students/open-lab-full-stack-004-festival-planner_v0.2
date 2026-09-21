@@ -87,7 +87,8 @@ erDiagram
 
 ### Invarianten (fachlich)
 
-- `Artist.name` und `Stage.name` sind nicht leer.
+- `Artist.name` und `Stage.name` sind nicht leer (auch nicht nur Leerzeichen) – zusätzlich
+  DB-seitig als `CheckConstraint` erzwungen.
 - `Stage.name` ist eindeutig (keine zwei Bühnen mit demselben Namen).
 - `Act.ends_at` liegt echt nach `Act.starts_at` – zusätzlich DB-seitig als `CheckConstraint`
   erzwungen, nicht nur in der Business-Logik.

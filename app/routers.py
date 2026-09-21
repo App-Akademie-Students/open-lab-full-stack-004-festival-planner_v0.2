@@ -12,7 +12,7 @@ from app.schedule import compute_statuses, festival_now
 router = APIRouter()
 
 
-class ProgramItemOut(BaseModel): # TODO move to rest_schema.py
+class ProgramItemOut(BaseModel):
     id: int
     title: str
     stage: str

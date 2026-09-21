@@ -113,8 +113,8 @@ Aufgaben T-10 bis T-14 in [`backlog.md`](backlog.md).
 
 28. **Änderungswünsche aus dem Review umsetzen**
     T-19 (klare Meldung bei fehlender `DATABASE_URL`), T-20 (`pool_pre_ping`) und T-21 (Test
-    für die `CheckConstraint`) – erledigt, siehe [`backlog.md`](backlog.md). Offen bleiben die
-    älteren Punkte T-15 bis T-18.
+    für die `CheckConstraint`) – erledigt, siehe [`backlog.md`](backlog.md). Die älteren
+    Punkte T-15 bis T-18 sind am 2026-09-21 ebenfalls erledigt.
 
 
 

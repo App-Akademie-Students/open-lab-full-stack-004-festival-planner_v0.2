@@ -30,7 +30,7 @@ festival-planner/
 │   ├── crud.py            Queries: Bühnenliste, Tagesliste, Programmliste (Joins über Artist/Stage)
 │   ├── routers.py         API-Endpunkte: GET /api/program, GET /api/stages, GET /api/days
 │   ├── schedule.py        Business-Logik: Festival-Zeit, Festivaltag, „läuft jetzt" / „als Nächstes"
-│   └── seed.py            Seed-Skript: Artists/Stages anlegen, dann Acts einfügen
+│   └── seed.py            Seed-Skript: Tabellen neu anlegen, Artists/Stages und Acts einfügen
 ├── static/
 │   ├── index.html         die einzige Seite
 │   ├── style.css          von der Tailwind-CLI erzeugt (eingecheckt, nicht von Hand ändern)
@@ -60,7 +60,7 @@ Datenbankdatei mehr. `.env` mit der `DATABASE_URL` ist per `.gitignore` von Git 
 | `app/routers.py` | Die drei API-Endpunkte, Pydantic-Antwortmodelle; ruft `crud.py` für die Daten und `schedule.py` für den Status auf. | `crud`, `schedule`, FastAPI |
 | `app/schedule.py` | `FESTIVAL_TZ`, `festival_now()`, die Tagesregel (`festival_day()`, `day_bounds()`) und reine Funktion(en), die Acts anhand eines übergebenen Zeitpunkts einen Status zuordnen. | nur `datetime` – **kein** FastAPI, **keine** Session |
 | `app/main.py` | App-Objekt, `init_db()` beim Start, bindet `routers.py` und `static/` ein. Enthält selbst keine Endpunkte mehr. | `db`, `routers` |
-| `app/seed.py` | `python -m app.seed`: Tabellen anlegen, vorhandene Zeilen löschen, Artists und Stages anlegen, Acts für vier Festivaltage (ab heute) auf 3 Bühnen mit FK-Referenzen einfügen. | `db`, `models`, `schedule` |
+| `app/seed.py` | `python -m app.seed`: Tabellen löschen und neu anlegen, Artists und Stages anlegen, Acts für vier Festivaltage (ab heute) auf 3 Bühnen mit FK-Referenzen einfügen. | `db`, `models`, `schedule` |
 | `static/*` | HTML + Vanilla JS, gestaltet mit Tailwind-Klassen; `style.css` ist erzeugt. Lädt Bühnen und Programm über die API, rendert die Liste, filtert per Dropdown, hebt Status hervor. | nur die HTTP-API |
 
 ## Wo liegt was?
@@ -169,7 +169,9 @@ Tages-Dropdown (US-8). Abgeleitet aus `Act.starts_at` – es gibt keine eigene T
 
 ### `GET /`
 
-Liefert `static/index.html`; `static/` wird per `StaticFiles` eingebunden.
+Liefert `static/index.html`; `static/` wird per `StaticFiles` eingebunden. Der Pfad
+(`STATIC_DIR`) wird relativ zu `app/main.py` aufgelöst, nicht zum Arbeitsverzeichnis – die App
+startet also auch außerhalb des Projektordners (T-17).
 
 ## Business-Logik: „läuft jetzt" / „kommt als Nächstes"
 
@@ -229,8 +231,13 @@ ohne Tricks testbar.
 - Drei Tabellen für `Artist`, `Stage`, `Act` (siehe `domain-model.md`), angelegt per
   `Base.metadata.create_all` in `init_db()` – beim App-Start und im Seed-Skript.
 - Datenintegrität: `ends_at > starts_at` ist als `CheckConstraint` auf `Act` DB-seitig
-  erzwungen, nicht nur in der Business-Logik.
-- Keine Migrationen: Bei Schemaänderungen wird die Datenbank gelöscht und neu geseedet.
+  erzwungen, nicht nur in der Business-Logik; ebenso `trim(name) <> ''` auf `Artist` und
+  `Stage` (T-18).
+- Keine Migrationen: Bei Schemaänderungen wird neu geseedet. Nicht offensichtlich:
+  `create_all` legt nur fehlende Tabellen an und ändert bestehende nie. Deshalb löscht
+  `seed.py` die Tabellen (`drop_all`) und legt sie neu an – nur so kommen z. B. neue
+  Constraints in einer bestehenden Neon-Datenbank an. Nebeneffekt: Die IDs beginnen wieder
+  bei 1.
 - `connect_args={"check_same_thread": False}` ist mit dem Wechsel weggefallen – das war eine
   reine SQLite-Eigenheit. In `tests/test_api.py` steht es weiterhin, weil die Tests eine
   In-Memory-SQLite-DB verwenden.
@@ -279,7 +286,8 @@ im Importpfad – daher keine `conftest.py` und keine `pytest.ini` nötig.
   Start-/Endzeitpunkt, parallele Acts, gleiche Startzeiten, nichts mehr kommt, gefilterte Liste).
 - `tests/test_models.py` – die DB-seitige Invariante `ends_at > starts_at` (`CheckConstraint`):
   Ende nach Start wird angenommen, Ende vor Start und Ende gleich Start werden mit
-  `IntegrityError` abgelehnt. Eigene Engine pro Test (Fixture), kein `TestClient`. Läuft unter
+  `IntegrityError` abgelehnt. Außerdem leere oder nur aus Leerzeichen bestehende Namen bei
+  `Artist` und `Stage`. Eigene Engine pro Test (Fixture), kein `TestClient`. Läuft unter
   In-Memory-SQLite, weil SQLite CHECK-Constraints ebenfalls durchsetzt.
 - `tests/test_seed.py` – die Seed-Daten aus `build_acts()`, ohne DB: ein Act pro Slot, vier
   aufeinanderfolgende Tage ab dem Starttag, `ends_at > starts_at` für alle Acts, ein Act über
@@ -292,7 +300,8 @@ im Importpfad – daher keine `conftest.py` und keine `pytest.ini` nötig.
   ohne Netzwerk und hinterlassen keine Daten in Neon. Der Preis: die migrierte
   Infrastrukturschicht (URL-Normalisierung, psycopg-Verbindung, PostgreSQL-spezifisches
   Verhalten) wird dadurch nicht abgedeckt. Ersetzt `get_db` und `festival_now` per
-  `dependency_overrides`.
+  `dependency_overrides` – in einer autouse-Fixture, die sie nach jedem Test wieder entfernt,
+  damit sie nicht in andere Testmodule durchschlagen (T-16).
   Nicht offensichtlich: Eine gesetzte `DATABASE_URL` brauchen die Tests trotzdem. Sie
   importieren `Base`/`get_db` aus `app.db`, und `db.py` prüft die Variable beim Import – ohne
   `.env` bricht `python -m pytest` deshalb schon beim Collect ab, allerdings mit einer klaren
@@ -306,7 +315,8 @@ im Importpfad – daher keine `conftest.py` und keine `pytest.ini` nötig.
 
 - `schemas.py`, `services/`, Repository-Klassen, Paket-Split (`app/api/`, `app/domain/`,
   `app/infra/`, …) – bei 7 flachen Modulen noch kein klarer Vorteil; siehe
-  „Erweiterungspunkte" für die Bedingungen, unter denen das sinnvoll wird.
+  „Erweiterungspunkte" für die Bedingungen, unter denen das sinnvoll wird. Die
+  Pydantic-Antwortmodelle stehen deshalb weiter in `routers.py`, dem einzigen Nutzer (T-15).
 - `config.py` – `.env` gibt es inzwischen (`DATABASE_URL`), aber nur eine einzige Variable,
   direkt in `db.py` gelesen; ein eigenes Konfigurationsmodul lohnt sich erst bei mehreren
   Werten oder mehreren Umgebungen. Die Zeitzone bleibt eine Konstante im Code.

@@ -9,7 +9,7 @@ Testen und Reviewen ist für beide Phasen erledigt und in [`review.md`](review.m
 freigegeben: Phase 1 in Abschnitt 6 (Stand 2026-09-16), die PostgreSQL-Umstellung in
 Abschnitt 7 (Stand 2026-09-18). Beide Urteile: „Freigeben mit nicht blockierenden
 Änderungswünschen", keine Blocker. T-19 bis T-21 aus dem Phase-2-Review sind inzwischen
-umgesetzt; offen sind nur noch T-15 bis T-18 im Abschnitt „Offene Punkte aus dem Review".
+umgesetzt, T-15 bis T-18 ebenfalls (2026-09-21) – aus beiden Reviews ist nichts mehr offen.
 
 Für v0.3 (Entwurf der Anforderungen in [`requirements.md`](requirements.md)) sind bisher
 US-7 (responsive Darstellung mit Tailwind CSS, umgesetzt) und US-8 (Programm nach Tag
@@ -194,10 +194,25 @@ Aus Abschnitt 6 (Phase 1):
 
 | ID | Titel | Status |
 |---|---|---|
-| T-15 | TODO `# TODO move to rest_schema.py` in `app/routers.py` klären – widerspricht der dokumentierten „kein `schemas.py`"-Entscheidung; entweder entfernen oder als neue Entscheidung in `architecture.md` dokumentieren | offen |
-| T-16 | Test-Overrides in `tests/test_api.py` von Modulebene in eine Fixture mit Teardown überführen | offen |
-| T-17 | `StaticFiles`-Pfad in `app/main.py` unabhängig vom aktuellen Arbeitsverzeichnis auflösen | offen |
-| T-18 | Invarianten `Artist.name` / `Stage.name` nicht leer als DB-`CheckConstraint` (analog T-12) | offen |
+| T-15 | TODO `# TODO move to rest_schema.py` in `app/routers.py` klären – widerspricht der dokumentierten „kein `schemas.py`"-Entscheidung; entweder entfernen oder als neue Entscheidung in `architecture.md` dokumentieren | erledigt |
+| T-16 | Test-Overrides in `tests/test_api.py` von Modulebene in eine Fixture mit Teardown überführen | erledigt |
+| T-17 | `StaticFiles`-Pfad in `app/main.py` unabhängig vom aktuellen Arbeitsverzeichnis auflösen | erledigt |
+| T-18 | Invarianten `Artist.name` / `Stage.name` nicht leer als DB-`CheckConstraint` (analog T-12) | erledigt |
+
+**T-15 bis T-18 – Umsetzung (2026-09-21):**
+
+- T-15: TODO entfernt. `ProgramItemOut`/`ProgramResponse` werden nur in `routers.py` genutzt;
+  ein `schemas.py` kommt erst mit konkretem Bedarf (siehe „Aktuell nicht vorhanden" in
+  [`architecture.md`](architecture.md)), z. B. mehreren Router-Dateien.
+- T-16: autouse-Fixture `override_dependencies` setzt die Overrides pro Test und entfernt sie
+  danach wieder.
+- T-17: `STATIC_DIR` wird relativ zu `app/main.py` aufgelöst; geprüft mit einem Start aus einem
+  anderen Ordner (`uvicorn --app-dir …`).
+- T-18: `CheckConstraint`s `trim(name) <> ''` auf `artists` und `stages` (auch reine
+  Leerzeichen werden abgelehnt), Tests in `tests/test_models.py`. Damit die Constraints in
+  einer bestehenden Datenbank ankommen, löscht `app/seed.py` die Tabellen jetzt und legt sie
+  neu an (`drop_all` + `create_all`), statt nur die Zeilen zu löschen – `create_all` ändert
+  bestehende Tabellen nicht. **In Neon wirksam erst nach einem erneuten `python -m app.seed`.**
 
 Aus Abschnitt 7 (PostgreSQL-Umstellung) – alle drei umgesetzt am 2026-09-18:
 
@@ -232,11 +247,9 @@ mit 5 Tests für `build_acts()`. Gegenprobe: Ohne die Mitternachts-Korrektur in 
 schlagen 2 davon fehl. Nicht geändert (Randnotiz aus dem Review, nur theoretisch): Ein Slot mit
 gleicher Start- und Endzeit würde wegen `<=` zu einem 24-Stunden-Act.
 
-**Hinweis (keine Aufgabe):** Da `app/seed.py` per `DELETE` löscht, laufen die
-PostgreSQL-Sequenzen beim Neu-Seeden weiter – die `id`-Werte beginnen also nicht wieder bei 1
-wie früher unter SQLite. Rein kosmetisch (IDs sind technisch und werden im Frontend nicht
-genutzt); falls doch gewünscht: `TRUNCATE ... RESTART IDENTITY`. Details in
-[`review.md`](review.md), Abschnitt 7.
+**Hinweis:** Früher löschte `app/seed.py` per `DELETE`, sodass die PostgreSQL-Sequenzen beim
+Neu-Seeden weiterliefen (siehe [`review.md`](review.md), Abschnitt 7). Seit T-18 legt der Seed
+die Tabellen neu an; die `id`-Werte beginnen damit wieder bei 1.
 
 Langfristig, ohne aktuellen Bedarf: `create_all` beim App-Start durch Migrationen ersetzen
 (siehe „Aktuell nicht vorhanden" in [`architecture.md`](architecture.md)).

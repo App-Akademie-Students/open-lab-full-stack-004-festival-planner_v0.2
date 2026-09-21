@@ -533,3 +533,12 @@ zeigte die Liste A, jetzt zeigt sie B.
 diesem Abschnitt umgesetzt. Mit gesetztem Filter lautet der Leer-Hinweis jetzt „Für diese Auswahl
 gibt es keine Acts.". `tests/test_seed.py` deckt `build_acts()` ab; ohne die
 Mitternachts-Korrektur schlagen 2 der 5 Tests fehl. `python -m pytest`: 32 passed.
+
+**Nachtrag 2026-09-21 (4):** Auch die älteren Punkte T-15 bis T-18 aus Abschnitt 6 sind
+erledigt. T-15: TODO entfernt, die Antwortmodelle bleiben in `routers.py`. T-16: Overrides in
+einer Fixture mit Teardown. T-17: `STATIC_DIR` relativ zu `main.py`, Start aus einem fremden
+Ordner geprüft. T-18: `CheckConstraint`s für nicht leere Namen. Neu und nicht im Review
+vorgesehen: `seed.py` legt die Tabellen neu an (`drop_all` + `create_all`), weil `create_all`
+bestehende Tabellen nicht ändert und die Constraints sonst nie in Neon ankämen. Das löst
+nebenbei den Hinweis zu den weiterlaufenden ID-Sequenzen aus Abschnitt 7. `python -m pytest`:
+36 passed. Aus den Abschnitten 6 bis 8 ist damit nichts mehr offen.

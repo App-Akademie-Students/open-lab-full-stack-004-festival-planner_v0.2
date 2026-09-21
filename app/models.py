@@ -13,6 +13,10 @@ class Artist(Base):
 
     acts = relationship("Act", back_populates="artist")
 
+    __table_args__ = (
+        CheckConstraint("trim(name) <> ''", name="ck_artists_name_not_empty"),
+    )
+
 
 class Stage(Base):
     __tablename__ = "stages"
@@ -21,6 +25,10 @@ class Stage(Base):
     name = Column(String, nullable=False, unique=True)
 
     acts = relationship("Act", back_populates="stage")
+
+    __table_args__ = (
+        CheckConstraint("trim(name) <> ''", name="ck_stages_name_not_empty"),
+    )
 
 
 class Act(Base):

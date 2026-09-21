@@ -43,7 +43,7 @@ Ein Prozess (uvicorn) liefert API und Frontend aus. Flache Modulstruktur:
 | `app/db.py` | Engine, Session, `init_db()`; bricht ohne `DATABASE_URL` mit klarer Meldung ab |
 | `app/seed.py` | Seed-Skript: vier Festivaltage ab heute, 3 Bühnen |
 | `static/` | `index.html`, `app.js`, erzeugtes `style.css` |
-| `tests/` | `test_schedule.py`, `test_models.py`, `test_api.py`, `test_seed.py` (32 Tests) |
+| `tests/` | `test_schedule.py`, `test_models.py`, `test_api.py`, `test_seed.py` (36 Tests) |
 
 **API** (flacher JSON-Vertrag, `title`/`stage` als Strings):
 
@@ -58,7 +58,8 @@ Ein Prozess (uvicorn) liefert API und Frontend aus. Flache Modulstruktur:
 - „Jetzt" bestimmt der Server (`festival_now`, als FastAPI-Dependency, in Tests ersetzbar).
 - Status wird **nach** Bühnen- und Tagesfilter berechnet.
 - Ein Act gehört zu dem Tag, an dem er beginnt (auch wenn er nach Mitternacht endet).
-- Keine Migrationen: Tabellen per `create_all`, bei Schemaänderung neu seeden.
+- Keine Migrationen: Tabellen per `create_all`; das Seed-Skript löscht die Tabellen und legt
+  sie neu an, so kommen Schemaänderungen in die Datenbank.
 
 Details: [`architecture.md`](architecture.md).
 
@@ -72,7 +73,8 @@ Stage  (id, name unique)     1 ── n  Act
 Act    (id, artist_id FK, stage_id FK, starts_at, ends_at)
 ```
 
-- `ends_at > starts_at` ist zusätzlich DB-seitig als `CheckConstraint` erzwungen.
+- `ends_at > starts_at` und nicht leere Namen (`Artist`, `Stage`) sind zusätzlich DB-seitig
+  als `CheckConstraint` erzwungen.
 - Nicht gespeichert, sondern zur Laufzeit berechnet: Status „now"/„next", Sortierung, Tage.
 - Keine Entitäten für Festival, Tag, Nutzer oder Favoriten.
 
@@ -95,7 +97,7 @@ Details: [`domain-model.md`](domain-model.md).
 
 - **v0.1** (US-1 bis US-6): umgesetzt, reviewt, freigegeben.
 - **v0.2 Phase 1** (T-1 bis T-9): Umbau auf `Artist`/`Stage`/`Act` und Modulaufteilung –
-  umgesetzt, freigegeben.
+  umgesetzt, freigegeben. Review-Punkte T-15 bis T-18 erledigt.
 - **v0.2 Phase 2** (T-10 bis T-14): Umstellung SQLite → PostgreSQL (Neon) – umgesetzt,
   freigegeben. Review-Punkte T-19 bis T-21 erledigt.
 - **v0.3:** US-7 (Tailwind, responsive) und US-8 (Tage gruppieren/filtern) umgesetzt,
@@ -103,7 +105,7 @@ Details: [`domain-model.md`](domain-model.md).
   (T-22 bis T-26) alle erledigt. Die übrigen
   v0.3-Anforderungen stehen im Entwurf von [`requirements.md`](requirements.md), sind aber
   noch nicht als Stories im Backlog.
-- Tests: `python -m pytest`, 32 grün (Stand 2026-09-21).
+- Tests: `python -m pytest`, 36 grün (Stand 2026-09-21).
 
 ## 7. Offene Entscheidungen und bekannte Probleme
 
@@ -115,20 +117,11 @@ Details: [`domain-model.md`](domain-model.md).
 - Import (B7): Datenformat, Endpunkt oder Skript, Art des Zugriffsschutzes?
 - Festival-Entität (B5): gehört ein `Artist` zu einem Festival oder wird er geteilt?
 
-**Offene technische Punkte aus dem Review (nicht blockierend):**
-
-- T-15: `# TODO move to rest_schema.py` in `app/routers.py` klären (widerspricht der
-  dokumentierten Entscheidung „noch kein `schemas.py`").
-- T-16: Test-Overrides in `tests/test_api.py` in eine Fixture mit Teardown überführen.
-- T-17: `StaticFiles`-Pfad in `app/main.py` hängt vom Arbeitsverzeichnis ab.
-- T-18: `Artist.name`/`Stage.name` nicht leer als DB-`CheckConstraint`.
-
 **Bekannte Einschränkungen:**
 
 - Tests decken die PostgreSQL-spezifische Infrastruktur (URL-Normalisierung, psycopg) nicht
   ab, da sie gegen In-Memory-SQLite laufen; auch sie brauchen trotzdem eine gesetzte
   `DATABASE_URL`.
-- Nach Neu-Seeden beginnen die IDs in PostgreSQL nicht wieder bei 1 (rein kosmetisch).
 - `domain-model.md` beschreibt noch „eine Instanz = ein Festival" (Stand v0.2); das passt
   nicht mehr zum v0.3-Entwurf mit mehreren Festivals und wird mit dessen Umsetzung angepasst.
 
@@ -142,7 +135,6 @@ Details: [`domain-model.md`](domain-model.md).
    - Offline-Verfügbarkeit (C9, F10).
 3. Die Festival-Entität erfordert eine Erweiterung von Domain Model und Architektur (neue
    Entität, FKs von `Stage`/`Act`) – vor der Umsetzung dokumentieren.
-4. Nebenbei: nicht blockierende Punkte T-15 bis T-18 abarbeiten.
 
 Weitere Quellen: [`../CLAUDE.md`](../CLAUDE.md), [`requirements.md`](requirements.md),
 [`backlog.md`](backlog.md), [`roadmap.md`](roadmap.md), [`review.md`](review.md).

@@ -2,10 +2,14 @@
 
 Run with `python -m app.seed`. Re-running replaces all existing data
 (no duplicates).
+
+The tables are dropped and recreated on every run: create_all() only creates missing tables
+and never alters existing ones, so this is how schema changes (e.g. new constraints) reach the
+database as long as there are no migrations. It also restarts the ID sequences at 1.
 """
 from datetime import date, datetime, time, timedelta
 
-from app.db import SessionLocal, init_db
+from app.db import Base, SessionLocal, engine, init_db
 from app.models import Act, Artist, Stage
 from app.schedule import festival_now
 
@@ -98,16 +102,12 @@ def build_acts(first_day: date) -> list[Act]:
 
 
 def seed() -> None:
+    Base.metadata.drop_all(bind=engine)
     init_db()
-    day = festival_now().date()
-    acts = build_acts(day)
+    acts = build_acts(festival_now().date())
 
     db = SessionLocal()
     try:
-        # Delete children before parents (FK dependency).
-        db.query(Act).delete()
-        db.query(Artist).delete()
-        db.query(Stage).delete()
         db.add_all(acts)
         db.commit()
     finally:

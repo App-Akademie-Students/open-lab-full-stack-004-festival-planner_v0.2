@@ -1,7 +1,7 @@
 """Model tests: database-level invariants (see doc/domain-model.md).
 
 Runs against in-memory SQLite like the API tests - SQLite enforces CHECK
-constraints too, so the invariant is covered without touching PostgreSQL.
+constraints too, so the invariants are covered without touching PostgreSQL.
 """
 from datetime import datetime
 
@@ -52,6 +52,22 @@ def test_act_rejects_end_before_start(db):
 def test_act_rejects_end_equal_to_start(db):
     same = datetime(2026, 9, 18, 13, 0)
     db.add(build_act(same, same))
+
+    with pytest.raises(IntegrityError):
+        db.commit()
+
+
+@pytest.mark.parametrize("name", ["", "   "])
+def test_artist_rejects_empty_name(db, name):
+    db.add(Artist(name=name))
+
+    with pytest.raises(IntegrityError):
+        db.commit()
+
+
+@pytest.mark.parametrize("name", ["", "   "])
+def test_stage_rejects_empty_name(db, name):
+    db.add(Stage(name=name))
 
     with pytest.raises(IntegrityError):
         db.commit()
