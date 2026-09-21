@@ -21,8 +21,9 @@ blockierenden Änderungswünsche aus dem Backlog: T-19 bis T-21 sind umgesetzt, 
 noch T-15 bis T-18.
 
 v0.3 ist als Entwurf in `doc/requirements.md` aufgenommen. Davon umgesetzt: US-7 (responsive
-Darstellung mit Tailwind CSS) und US-8 (Programm nach Tag gruppieren und filtern); die übrigen
-v0.3-Anforderungen sind noch nicht im Backlog.
+Darstellung mit Tailwind CSS) und US-8 (Programm nach Tag gruppieren und filtern), beide in
+`doc/review.md` (Abschnitt 8) ohne Blocker freigegeben; offen sind die nicht blockierenden
+Änderungswünsche T-22 bis T-25 (T-26 ist erledigt). Die übrigen v0.3-Anforderungen sind noch nicht im Backlog.
 
 Ab Phase 2 gilt eine neue Leitlinie für die Architektur: nicht mehr „so klein wie möglich"
 (MVP), sondern gut strukturiert und erweiterbar – die Struktur wächst Schritt für Schritt mit

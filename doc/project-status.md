@@ -96,11 +96,12 @@ Details: [`domain-model.md`](domain-model.md).
   umgesetzt, freigegeben.
 - **v0.2 Phase 2** (T-10 bis T-14): Umstellung SQLite → PostgreSQL (Neon) – umgesetzt,
   freigegeben. Review-Punkte T-19 bis T-21 erledigt.
-- **v0.3:** US-7 (Tailwind, responsive) und US-8 (Tage gruppieren/filtern) umgesetzt. Für
-  beide gibt es noch keinen Review-Eintrag in [`review.md`](review.md). Die übrigen
+- **v0.3:** US-7 (Tailwind, responsive) und US-8 (Tage gruppieren/filtern) umgesetzt,
+  reviewt und freigegeben ([`review.md`](review.md), Abschnitt 8); Review-Punkte T-22 bis
+  T-25 offen, nicht blockierend (T-26 erledigt). Die übrigen
   v0.3-Anforderungen stehen im Entwurf von [`requirements.md`](requirements.md), sind aber
   noch nicht als Stories im Backlog.
-- Tests: `python -m pytest`, Stand laut Doku grün.
+- Tests: `python -m pytest`, 27 grün (Stand 2026-09-21).
 
 ## 7. Offene Entscheidungen und bekannte Probleme
 
@@ -119,6 +120,11 @@ Details: [`domain-model.md`](domain-model.md).
 - T-16: Test-Overrides in `tests/test_api.py` in eine Fixture mit Teardown überführen.
 - T-17: `StaticFiles`-Pfad in `app/main.py` hängt vom Arbeitsverzeichnis ab.
 - T-18: `Artist.name`/`Stage.name` nicht leer als DB-`CheckConstraint`.
+- T-22: „läuft jetzt"/„als Nächstes" nur farblich markiert, ohne Text-Badge.
+- T-23: Race Condition bei schnellem Filterwechsel (veraltete Antwort kann die Liste
+  überschreiben).
+- T-24: Leer-Hinweis unterscheidet nicht zwischen leerer DB und leerer Filterauswahl.
+- T-25: Seed-Logik über Mitternacht (`build_acts()`) ungetestet.
 
 **Bekannte Einschränkungen:**
 
@@ -131,16 +137,15 @@ Details: [`domain-model.md`](domain-model.md).
 
 ## 8. Nächste geplante Schritte
 
-1. Review für US-7 und US-8 nachziehen.
-2. Offene Fragen des v0.3-Entwurfs klären (siehe Abschnitt 7).
-3. Restliche v0.3-Anforderungen als User Stories ins Backlog übernehmen und priorisieren:
+1. Offene Fragen des v0.3-Entwurfs klären (siehe Abschnitt 7).
+2. Restliche v0.3-Anforderungen als User Stories ins Backlog übernehmen und priorisieren:
    - mehrere Festivals + Festivalauswahl (C4, C5, F5, B5, B6),
    - Favoriten und persönlicher Zeitplan im Browser (C7, C8, F7, F8),
    - Datenimport über einen geschützten Backend-Zugang (B7),
    - Offline-Verfügbarkeit (C9, F10).
-4. Die Festival-Entität erfordert eine Erweiterung von Domain Model und Architektur (neue
+3. Die Festival-Entität erfordert eine Erweiterung von Domain Model und Architektur (neue
    Entität, FKs von `Stage`/`Act`) – vor der Umsetzung dokumentieren.
-5. Nebenbei: nicht blockierende Punkte T-15 bis T-18 abarbeiten.
+4. Nebenbei: nicht blockierende Punkte T-15 bis T-18 und T-22 bis T-25 abarbeiten.
 
 Weitere Quellen: [`../CLAUDE.md`](../CLAUDE.md), [`requirements.md`](requirements.md),
 [`backlog.md`](backlog.md), [`roadmap.md`](roadmap.md), [`review.md`](review.md).

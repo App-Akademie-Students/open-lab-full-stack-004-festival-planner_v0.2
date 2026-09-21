@@ -1,6 +1,8 @@
 # Anforderungen
 
-Status: Entwurf v0.3, Stand 2026-09-18 – neue Anforderungen aufgenommen, noch nicht umgesetzt.
+Status: Entwurf v0.3, Stand 2026-09-21 – teilweise umgesetzt: Mehrtägigkeit mit Tagesfilter
+(C6, F6, Tages-Teil von B6) und Tailwind CSS/responsive (C10, F4, F9) über US-7 und US-8.
+Mehrere Festivals, Favoriten, Import und Offline-Verfügbarkeit sind noch nicht umgesetzt.
 Vorherige bestätigte Stände sind eingefroren unter
 [`requirements-history/requirements-v0.2.md`](requirements-history/requirements-v0.2.md)
 (eintägiges Festival, ein Festival pro Instanz, kein Build-Tooling) und
@@ -76,9 +78,9 @@ nicht-funktionale Rahmenbedingungen).
 | T2 | Die Anwendung ist lokal als ein Prozess startbar (uvicorn). |
 | T3 | Die „aktuelle Zeit" für F3 wird serverseitig in einer festen Festival-Zeitzone bestimmt: fester Offset UTC+02:00. |
 
-**Erweiterbarkeit (Leitplanke, keine Umsetzung in der aktuellen Version):**
-B4 (vollständige Zeitstempel) trägt den Tagesfilter (F6) als reine Anzeige-Logik – kein
-Datenmodell-Umbau für Mehrtägigkeit nötig. Die Trennung in `Artist`/`Stage`/`Act` (v0.2) hält
+**Erweiterbarkeit (Leitplanke):**
+B4 (vollständige Zeitstempel) trägt die Mehrtägigkeit samt Tagesfilter (F6) ohne eigene
+Tag-Entität und ohne Datenmodell-Umbau. Die Trennung in `Artist`/`Stage`/`Act` (v0.2) hält
 zusätzlich weitere Attribute offen (z. B. Genre auf `Artist`, Kapazität auf `Stage` – Richtung
 O2), ebenfalls ohne Umbau von `Act`. Details:
 [`architecture.md`](architecture.md#erweiterungspunkte-nicht-in-der-aktuellen-version).

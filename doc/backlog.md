@@ -1,6 +1,6 @@
 # Backlog
 
-Status: Stand 2026-09-18. v0.1 bestätigt und umgesetzt (Roadmap-Schritt 9). v0.2 ist
+Status: Stand 2026-09-21. v0.1 bestätigt und umgesetzt (Roadmap-Schritt 9). v0.2 ist
 umgesetzt, in zwei Phasen: Refactoring Phase 1 (T-1 bis T-9, `Artist`/`Stage`/`Act` statt
 `ProgramItem`) und Refactoring Phase 2 (T-10 bis T-13, Umstellung von SQLite auf PostgreSQL
 bei Neon) – siehe die beiden Abschnitte unten.
@@ -13,7 +13,10 @@ umgesetzt; offen sind nur noch T-15 bis T-18 im Abschnitt „Offene Punkte aus d
 
 Für v0.3 (Entwurf der Anforderungen in [`requirements.md`](requirements.md)) sind bisher
 US-7 (responsive Darstellung mit Tailwind CSS, umgesetzt) und US-8 (Programm nach Tag
-gruppieren und filtern, umgesetzt) aufgenommen – siehe Abschnitt „v0.3" unten.
+gruppieren und filtern, umgesetzt) aufgenommen – siehe Abschnitt „v0.3" unten. Beide sind in
+[`review.md`](review.md), Abschnitt 8 (Stand 2026-09-21), freigegeben: „Freigeben mit nicht
+blockierenden Änderungswünschen", keine Blocker; die Änderungswünsche stehen als T-22 bis T-26
+unter „Offene Punkte aus dem Review" (T-26 erledigt).
 
 Abgeleitet aus den Muss-Anforderungen in [`requirements.md`](requirements.md).
 Technischer Rahmen: [`architecture.md`](architecture.md).
@@ -184,7 +187,7 @@ sonst `psycopg2` erwartet. Tests laufen weiterhin gegen In-Memory-SQLite, nicht 
 
 ## Offene Punkte aus dem Review (nicht blockierend)
 
-Aus [`review.md`](review.md) (Abschnitte 2–4 und Nachtrag). Keiner dieser Punkte verletzt eine
+Aus [`review.md`](review.md) (Abschnitte 2–4 und Nachträge). Keiner dieser Punkte verletzt eine
 Muss-Anforderung; sie sind hier nur festgehalten, damit sie nicht verloren gehen.
 
 Aus Abschnitt 6 (Phase 1):
@@ -203,6 +206,16 @@ Aus Abschnitt 7 (PostgreSQL-Umstellung) – alle drei umgesetzt am 2026-09-18:
 | T-19 | Fehlende `DATABASE_URL` klar melden statt `KeyError`: `app/db.py` prüft die Variable und bricht mit Hinweis auf `.env` ab. Wichtig, weil ohne `.env` auch `python -m pytest` beim Collect abbricht – obwohl die Tests nur In-Memory-SQLite brauchen | erledigt |
 | T-20 | `create_engine(..., pool_pre_ping=True)` gegen abgestandene Verbindungen nach Neons Idle-Suspend | erledigt |
 | T-21 | Test für die `CheckConstraint` `ends_at > starts_at` (läuft auch unter In-Memory-SQLite) | erledigt |
+
+Aus Abschnitt 8 (v0.3, US-7/US-8):
+
+| ID | Titel | Status |
+|---|---|---|
+| T-22 | Status „läuft jetzt" / „als Nächstes" zusätzlich als Text-Badge anzeigen, nicht nur über Farbe (C2; wichtiger seit dem Tagesfilter, der auf späteren Tagen deren ersten Act als „als Nächstes" markiert) | offen |
+| T-23 | Race Condition in `static/app.js` beheben: veraltete Antworten bei schnellem Filterwechsel verwerfen (`AbortController` oder Anfragezähler) | offen |
+| T-24 | Leer-Hinweis unterscheiden: leere Datenbank vs. Filterkombination ohne Acts | offen |
+| T-25 | Test für `build_acts()` in `app/seed.py`: Anzahl Tage, `ends_at > starts_at`, Acts über Mitternacht enden am Folgetag | offen |
+| T-26 | `requirements.md` nachziehen: Statuszeile und Absatz „Erweiterbarkeit" behandeln Tagesfilter/Tailwind noch als nicht umgesetzt | erledigt |
 
 **Hinweis (keine Aufgabe):** Da `app/seed.py` per `DELETE` löscht, laufen die
 PostgreSQL-Sequenzen beim Neu-Seeden weiter – die `id`-Werte beginnen also nicht wieder bei 1

@@ -386,3 +386,139 @@ verifiziert worden:
 
 Suite nach den Änderungen: **18 passed** (vorher 15), keine neuen Warnungen. Die ⚠️-Punkte
 T-15 bis T-18 bleiben unverändert offen.
+
+## 8. Nachtrag – v0.3: US-7 (Tailwind, responsive) und US-8 (Tage gruppieren/filtern), Stand 2026-09-21
+
+Review des Commits `fa7a0f6` (Code-Anteil: `app/crud.py`, `app/routers.py`, `app/schedule.py`,
+`app/seed.py`, `static/index.html`, `static/app.js`, `static/style.css`, `tailwind/input.css`,
+`tests/test_api.py`, `tests/test_schedule.py`, `.gitignore`) gegen die Akzeptanzkriterien in
+`doc/backlog.md`, `doc/requirements.md` (C6, C10, F4, F6, F9, B4, B6, T1), `doc/architecture.md`
+und `CLAUDE.md`.
+
+Verifikation:
+
+- `python -m pytest -q`: **27 passed** (vorher 18; neu sind 6 API-Tests und 3 Unit-Tests),
+  dieselben 2 bekannten Deprecation-Warnings.
+- `static/style.css` mit dem Tailwind-CLI-Binary (v4.3.3) neu erzeugt: **byte-identisch** zur
+  eingecheckten Datei. Das eingecheckte CSS ist also aktuell, und alle in `app.js` gesetzten
+  Klassen (u. a. `sm:grid-cols-[7rem_1fr_10rem]`, `border-l-green-600`, `min-h-11`) sind
+  enthalten.
+- App lokal gegen eine **Wegwerf-SQLite-DB** gestartet (nicht gegen Neon, damit die Daten dort
+  unverändert bleiben), per `python -m app.seed` befüllt, API per `curl` geprüft und die
+  Oberfläche mit Headless-Chrome bei 360 px und 1280 px gerendert.
+
+### Erfüllung der Akzeptanzkriterien US-7
+
+- **Tailwind statt eigenem CSS – erfüllt.** Das handgeschriebene CSS ist vollständig ersetzt;
+  `tailwind/input.css` enthält nur Import und `@source`.
+- **CSS-Build mit der Tailwind-CLI, dokumentiert – erfüllt.** Befehle stehen in `CLAUDE.md`
+  unter „Build CSS"; das Binary ist über `.gitignore` ausgeschlossen.
+- **Kein JS-Framework, kein JS-Build (F4) – erfüllt.** `app.js` ist unverändert Vanilla JS und
+  wird direkt ausgeliefert.
+- **360 px ohne horizontales Scrollen, Desktop übersichtlich – erfüllt.** Bei 360 px sind Zeit,
+  Titel und Bühne in einer Zeile lesbar, die beiden Filter stehen nebeneinander im
+  2-Spalten-Raster. Ab `sm` wird der Eintrag zum Raster `7rem | 1fr | 10rem`, der Inhalt ist
+  auf `max-w-3xl` zentriert.
+- **Touch-Bedienbarkeit – erfüllt.** Beide Auswahlfelder haben `min-h-11` (44 px, gängige
+  Mindestgröße für Touch-Ziele) und `text-base` (verhindert Auto-Zoom unter iOS).
+- **Funktionen unverändert, „läuft jetzt"/„als Nächstes" unterscheidbar – erfüllt,** grün
+  bzw. bernsteinfarben mit farbigem linkem Rand. Siehe aber den ⚠️-Punkt zur fehlenden
+  Beschriftung.
+- **Entscheidung CSS einchecken und Herkunft der CLI – erfüllt,** in `CLAUDE.md`
+  („Project Decisions") und im Backlog dokumentiert.
+
+### Erfüllung der Akzeptanzkriterien US-8
+
+- **Seed über mindestens zwei Tage ab heute – erfüllt.** Es sind vier Tage mit 14/10/12/8 Acts,
+  darunter zwei Acts über Mitternacht („Night Owls" 23:00–01:00, „Afterhour Collective"
+  22:30–02:00). `/api/days` liefert live die vier Tage ab 2026-09-21.
+- **Gruppierung mit Überschrift „Fr, 18.09." – erfüllt.** `formatDay()` berechnet den Wochentag
+  per `Date.UTC`/`getUTCDay`, also unabhängig von Zeitzone und Sprache des Geräts. Das ist gut
+  gelöst, weil ein `new Date("2026-09-21")` in westlichen Zeitzonen auf den Vortag kippen würde.
+- **Tages-Auswahl „Alle Tage" + Tage mit Acts, chronologisch – erfüllt.**
+- **Act gehört zum Starttag – erfüllt und getestet**, sowohl im Backend
+  (`festival_day`, `test_act_past_midnight_belongs_to_its_start_day`,
+  `test_days_are_sorted_and_use_the_start_day`) als auch im Frontend
+  (`starts_at.slice(0, 10)`).
+- **Tages- und Bühnenfilter kombinierbar, Status nach dem Filter – erfüllt und getestet**
+  (`test_program_filtered_by_day_and_stage`, `test_status_is_computed_within_the_selected_day`).
+- **`GET /api/program?day=` und `GET /api/days` – erfüllt.** Ein Tag ohne Acts liefert `[]`,
+  ein ungültiges Datum `422` (FastAPI validiert `date`), eine leere DB liefert `[]` für `/api/days`.
+  Der Tagesfilter ist ein Bereichsfilter `[Tag 00:00, Folgetag 00:00)` statt eines
+  `date()`-Casts und verhält sich so unter SQLite und PostgreSQL gleich.
+- **Eintägiges Festival übersichtlich – erfüllt** (eine Gruppe, ein Eintrag in der Auswahl;
+  per Code-Durchsicht geprüft, nicht live).
+- **Tagesfilter und Überschriften auf 360 px bedienbar/lesbar – erfüllt** (siehe US-7).
+
+### Findings
+
+- ⚠️ **UX – Status nur über Farbe, ohne Beschriftung.** „Läuft jetzt" und „als Nächstes" sind
+  nur durch Hintergrund- und Randfarbe erkennbar; es gibt weder Text noch Legende. Wer die Farben
+  nicht kennt oder Grün und Bernstein schlecht unterscheiden kann, erkennt den Status nicht
+  „sofort" (C2). Das war schon in v0.1 so, ist also keine Regression. Durch US-8 wird es aber
+  wichtiger: Bei Auswahl eines späteren Tages ist dessen erster Act „als Nächstes" markiert
+  (bewusste, dokumentierte Folge von „Status nach dem Filter"), obwohl heute noch Acts kommen.
+  Ohne Beschriftung ist dieser Unterschied nicht erklärbar. Vorschlag: ein kleines Text-Badge
+  („läuft jetzt" / „als Nächstes") im Eintrag, die Klassen dabei vollständig ausgeschrieben.
+- ⚠️ **Race Condition bei schnellem Filterwechsel.** `loadProgram()` (`static/app.js:25`) startet
+  bei jeder Änderung einen neuen `fetch`, ohne ältere Anfragen abzubrechen. Kommen die Antworten
+  in anderer Reihenfolge zurück als abgeschickt (z. B. bei schlechtem Empfang auf dem Gelände oder
+  bei Neons Kaltstart), zeigt die Liste das Ergebnis der *vorletzten* Auswahl, obwohl die
+  Dropdowns die letzte anzeigen. Mit zwei Filtern ist das wahrscheinlicher als in v0.1. Abhilfe
+  ohne neue Dependency: `AbortController` oder ein Anfragezähler, der veraltete Antworten
+  verwirft.
+- ⚠️ **Irreführender Leer-Hinweis bei Filterkombinationen.** Liefert eine Kombination aus Tag und
+  Bühne keine Acts, erscheint „Es sind noch keine Programmpunkte vorhanden." – das klingt nach
+  leerer Datenbank, nicht nach leerer Auswahl. Mit den Seed-Daten tritt das nicht auf, weil jede
+  Bühne an jedem Tag bespielt wird, bei echten Daten aber schon. Vorschlag: Text abhängig davon,
+  ob ein Filter gesetzt ist (z. B. „Für diese Auswahl gibt es keine Acts.").
+- ⚠️ **Testlücke – Seed-Logik über Mitternacht.** `build_acts()` (`app/seed.py`) schiebt `ends_at`
+  um einen Tag weiter, wenn das Ende vor dem Start liegt. Genau diese Stelle erzeugt die Daten, an
+  denen US-8 geprüft wird, ist aber nicht getestet. `build_acts()` ist ohne DB aufrufbar, ein Test
+  wäre also klein: Anzahl der Tage, `ends_at > starts_at` für alle Acts, „Night Owls" endet am
+  Folgetag. Randnotiz: Ein Slot mit identischer Start- und Endzeit würde wegen `<=` stillschweigend
+  zu einem 24-Stunden-Act statt an der `CheckConstraint` zu scheitern. Bei den festen Seed-Daten
+  ist das nur theoretisch.
+- ⚠️ **Doku – `requirements.md` ist an zwei Stellen veraltet.** Die Statuszeile sagt „neue
+  Anforderungen aufgenommen, noch nicht umgesetzt", und der Absatz „Erweiterbarkeit (Leitplanke,
+  keine Umsetzung in der aktuellen Version)" nennt den Tagesfilter (F6) noch als zukünftig. Beides
+  stimmt seit US-7/US-8 nicht mehr (C6, C10, F6, F9 und der Tages-Teil von B6 sind umgesetzt).
+  `backlog.md`, `architecture.md`, `project-status.md` und `CLAUDE.md` sind dagegen aktuell.
+- ✅ **Architektur-Regeln eingehalten.** Die Queries liegen in `crud.py`, die Tagesregel als reine
+  Funktionen in `schedule.py` mit Unit-Tests, der Endpunkt bleibt dünn und der API-Vertrag
+  wurde nur um den optionalen Parameter `day` erweitert. Es gibt keine neue Python-Dependency und
+  keine neue Datei außer `tailwind/input.css`. Nebenbei behoben: die doppelte Leerzeile in
+  `app/crud.py` aus Abschnitt 7.
+- ⚠️ **Weiterhin offen** (unverändert durch US-7/US-8): T-15 bis T-18.
+
+Keine ❌-Blocker gefunden.
+
+### Nicht offensichtlich, fürs Protokoll
+
+- Die Tagesregel steht bewusst an zwei Stellen, in `schedule.festival_day()` und in
+  `groupByDay()` (`app.js`). Beide dürfen nur deshalb einfach das Datum aus `starts_at` nehmen,
+  weil Zeitstempel naiv in Festival-Ortszeit gespeichert und ausgeliefert werden. Wer das je auf
+  UTC oder zeitzonenbehaftete Zeitstempel umstellt, muss beide Stellen anpassen, sonst landen
+  Acts nach 22:00 in der Gruppe des Folgetags.
+- `list_days()` lädt alle unterschiedlichen `starts_at` und bildet die Tage in Python statt per
+  SQL-`DISTINCT date(...)`. Das ist dieselbe Begründung wie beim Bereichsfilter (gleiches
+  Verhalten unter SQLite und PostgreSQL) und bei ein paar Dutzend Acts unerheblich.
+- `@source "../static"` lässt Tailwind auch die eigene Ausgabe `static/style.css` scannen.
+  Nachgeprüft ist das harmlos: Ein Build, der nur `*.html`/`*.js` scannt, ist byte-identisch.
+- Headless-Chrome hat eine Mindest-Fensterbreite. Ein Screenshot mit `--window-size=360,…`
+  sieht daher abgeschnitten aus, obwohl die Seite korrekt ist. Für den 360-px-Check wurde die
+  Seite in einem 360 px breiten `iframe` gerendert.
+
+### Gesamturteil (Nachtrag v0.3)
+
+**Freigeben mit (nicht blockierenden) Änderungswünschen.**
+
+Alle Akzeptanzkriterien von US-7 und US-8 sind erfüllt. Die fachlich heikle Regel „Act gehört zum
+Starttag" ist in Backend und Frontend konsistent umgesetzt und im Backend getestet. Das
+eingecheckte CSS stimmt mit einem frischen Build überein, und die Oberfläche funktioniert bei
+360 px wie am Desktop. Die Änderungswünsche betreffen die Bedienung (Status-Beschriftung,
+Race Condition, Leer-Hinweis), eine Testlücke im Seed und veraltete Stellen in
+`requirements.md`. Sie sind im Backlog als T-22 bis T-26 festgehalten.
+
+**Nachtrag 2026-09-21:** T-26 ist erledigt. In `requirements.md` sind die Statuszeile und der
+Absatz „Erweiterbarkeit" an den umgesetzten Stand angepasst. T-22 bis T-25 bleiben offen.
