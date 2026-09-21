@@ -43,7 +43,7 @@ Ein Prozess (uvicorn) liefert API und Frontend aus. Flache Modulstruktur:
 | `app/db.py` | Engine, Session, `init_db()`; bricht ohne `DATABASE_URL` mit klarer Meldung ab |
 | `app/seed.py` | Seed-Skript: vier Festivaltage ab heute, 3 Bühnen |
 | `static/` | `index.html`, `app.js`, erzeugtes `style.css` |
-| `tests/` | `test_schedule.py`, `test_models.py`, `test_api.py` (27 Tests) |
+| `tests/` | `test_schedule.py`, `test_models.py`, `test_api.py`, `test_seed.py` (32 Tests) |
 
 **API** (flacher JSON-Vertrag, `title`/`stage` als Strings):
 
@@ -99,11 +99,11 @@ Details: [`domain-model.md`](domain-model.md).
 - **v0.2 Phase 2** (T-10 bis T-14): Umstellung SQLite → PostgreSQL (Neon) – umgesetzt,
   freigegeben. Review-Punkte T-19 bis T-21 erledigt.
 - **v0.3:** US-7 (Tailwind, responsive) und US-8 (Tage gruppieren/filtern) umgesetzt,
-  reviewt und freigegeben ([`review.md`](review.md), Abschnitt 8); Review-Punkte T-24 und
-  T-25 offen, nicht blockierend (T-22, T-23 und T-26 erledigt). Die übrigen
+  reviewt und freigegeben ([`review.md`](review.md), Abschnitt 8); Review-Punkte daraus
+  (T-22 bis T-26) alle erledigt. Die übrigen
   v0.3-Anforderungen stehen im Entwurf von [`requirements.md`](requirements.md), sind aber
   noch nicht als Stories im Backlog.
-- Tests: `python -m pytest`, 27 grün (Stand 2026-09-21).
+- Tests: `python -m pytest`, 32 grün (Stand 2026-09-21).
 
 ## 7. Offene Entscheidungen und bekannte Probleme
 
@@ -122,8 +122,6 @@ Details: [`domain-model.md`](domain-model.md).
 - T-16: Test-Overrides in `tests/test_api.py` in eine Fixture mit Teardown überführen.
 - T-17: `StaticFiles`-Pfad in `app/main.py` hängt vom Arbeitsverzeichnis ab.
 - T-18: `Artist.name`/`Stage.name` nicht leer als DB-`CheckConstraint`.
-- T-24: Leer-Hinweis unterscheidet nicht zwischen leerer DB und leerer Filterauswahl.
-- T-25: Seed-Logik über Mitternacht (`build_acts()`) ungetestet.
 
 **Bekannte Einschränkungen:**
 
@@ -144,7 +142,7 @@ Details: [`domain-model.md`](domain-model.md).
    - Offline-Verfügbarkeit (C9, F10).
 3. Die Festival-Entität erfordert eine Erweiterung von Domain Model und Architektur (neue
    Entität, FKs von `Stage`/`Act`) – vor der Umsetzung dokumentieren.
-4. Nebenbei: nicht blockierende Punkte T-15 bis T-18, T-24 und T-25 abarbeiten.
+4. Nebenbei: nicht blockierende Punkte T-15 bis T-18 abarbeiten.
 
 Weitere Quellen: [`../CLAUDE.md`](../CLAUDE.md), [`requirements.md`](requirements.md),
 [`backlog.md`](backlog.md), [`roadmap.md`](roadmap.md), [`review.md`](review.md).

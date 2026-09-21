@@ -16,7 +16,7 @@ US-7 (responsive Darstellung mit Tailwind CSS, umgesetzt) und US-8 (Programm nac
 gruppieren und filtern, umgesetzt) aufgenommen – siehe Abschnitt „v0.3" unten. Beide sind in
 [`review.md`](review.md), Abschnitt 8 (Stand 2026-09-21), freigegeben: „Freigeben mit nicht
 blockierenden Änderungswünschen", keine Blocker; die Änderungswünsche stehen als T-22 bis T-26
-unter „Offene Punkte aus dem Review" (T-22, T-23 und T-26 erledigt, T-24 und T-25 offen).
+unter „Offene Punkte aus dem Review" (alle erledigt).
 
 Abgeleitet aus den Muss-Anforderungen in [`requirements.md`](requirements.md).
 Technischer Rahmen: [`architecture.md`](architecture.md).
@@ -213,8 +213,8 @@ Aus Abschnitt 8 (v0.3, US-7/US-8):
 |---|---|---|
 | T-22 | Status „läuft jetzt" / „als Nächstes" zusätzlich als Text-Badge anzeigen, nicht nur über Farbe (C2; wichtiger seit dem Tagesfilter, der auf späteren Tagen deren ersten Act als „als Nächstes" markiert) | erledigt |
 | T-23 | Race Condition in `static/app.js` beheben: veraltete Antworten bei schnellem Filterwechsel verwerfen (`AbortController` oder Anfragezähler) | erledigt |
-| T-24 | Leer-Hinweis unterscheiden: leere Datenbank vs. Filterkombination ohne Acts | offen |
-| T-25 | Test für `build_acts()` in `app/seed.py`: Anzahl Tage, `ends_at > starts_at`, Acts über Mitternacht enden am Folgetag | offen |
+| T-24 | Leer-Hinweis unterscheiden: leere Datenbank vs. Filterkombination ohne Acts | erledigt |
+| T-25 | Test für `build_acts()` in `app/seed.py`: Anzahl Tage, `ends_at > starts_at`, Acts über Mitternacht enden am Folgetag | erledigt |
 | T-26 | `requirements.md` nachziehen: Statuszeile und Absatz „Erweiterbarkeit" behandeln Tagesfilter/Tailwind noch als nicht umgesetzt | erledigt |
 
 **T-22/T-23 – Umsetzung (2026-09-21):** Text-Badge hinter dem Titel (`STATUS_BADGES` in
@@ -224,6 +224,13 @@ Veraltete Antworten verwirft ein Anfragezähler (`latestProgramRequest`) – ein
 (Headless-Chrome, 360 px und 1280 px) und für T-23 mit verzögert antwortendem Mock-`fetch`:
 Die alte Version zeigt die vorletzte Auswahl, die neue die letzte. Automatisierte JS-Tests gibt
 es bewusst nicht (kein JS-Build, keine JS-Test-Dependency).
+
+**T-24/T-25 – Umsetzung (2026-09-21):** Der Leer-Hinweis in `static/app.js` hängt davon ab, ob
+ein Filter gesetzt ist („Für diese Auswahl gibt es keine Acts." statt „Es sind noch keine
+Programmpunkte vorhanden."); im Browser mit Mock-`fetch` geprüft. Neu ist `tests/test_seed.py`
+mit 5 Tests für `build_acts()`. Gegenprobe: Ohne die Mitternachts-Korrektur in `build_acts()`
+schlagen 2 davon fehl. Nicht geändert (Randnotiz aus dem Review, nur theoretisch): Ein Slot mit
+gleicher Start- und Endzeit würde wegen `<=` zu einem 24-Stunden-Act.
 
 **Hinweis (keine Aufgabe):** Da `app/seed.py` per `DELETE` löscht, laufen die
 PostgreSQL-Sequenzen beim Neu-Seeden weiter – die `id`-Werte beginnen also nicht wieder bei 1

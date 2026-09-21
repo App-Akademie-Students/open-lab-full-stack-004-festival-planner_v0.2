@@ -527,4 +527,9 @@ Absatz „Erweiterbarkeit" an den umgesetzten Stand angepasst.
 Text-Badge („läuft jetzt" / „als Nächstes") den Status, und ein Anfragezähler in
 `loadProgram()` verwirft veraltete Antworten. T-23 wurde mit einem verzögerten Mock-`fetch`
 nachgestellt (langsame Antwort für Bühne A, schnelle für Bühne B, A vor B gewählt): Vorher
-zeigte die Liste A, jetzt zeigt sie B. T-24 und T-25 bleiben offen.
+zeigte die Liste A, jetzt zeigt sie B.
+
+**Nachtrag 2026-09-21 (3):** T-24 und T-25 sind erledigt, damit sind alle Änderungswünsche aus
+diesem Abschnitt umgesetzt. Mit gesetztem Filter lautet der Leer-Hinweis jetzt „Für diese Auswahl
+gibt es keine Acts.". `tests/test_seed.py` deckt `build_acts()` ab; ohne die
+Mitternachts-Korrektur schlagen 2 der 5 Tests fehl. `python -m pytest`: 32 passed.

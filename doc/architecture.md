@@ -40,7 +40,8 @@ festival-planner/
 ├── tests/
 │   ├── test_schedule.py   Unit-Tests der Business-Logik (ohne DB, ohne HTTP)
 │   ├── test_models.py     DB-seitige Invarianten der Modelle (In-Memory-SQLite)
-│   └── test_api.py        wenige API-Tests (TestClient + In-Memory-SQLite, nicht Neon)
+│   ├── test_api.py        wenige API-Tests (TestClient + In-Memory-SQLite, nicht Neon)
+│   └── test_seed.py       Seed-Daten aus build_acts() (ohne DB): Tage, Acts über Mitternacht
 ├── .env                   DATABASE_URL (nicht eingecheckt)
 ├── requirements.txt       Laufzeit: fastapi, uvicorn[standard], sqlalchemy, psycopg[binary], python-dotenv
 └── requirements-dev.txt   -r requirements.txt + pytest + httpx
@@ -265,6 +266,8 @@ passenden FK-Referenzen.
   Strings in `static/` findet – dynamisch zusammengesetzte Klassennamen fehlen im CSS.
   Die erzeugte Datei ist eingecheckt, damit der Betrieb keinen Build-Schritt braucht (T2).
   Befehle: [`../CLAUDE.md`](../CLAUDE.md#build-css-nur-bei-änderungen-am-frontend).
+- Leere Liste: Ohne Filter lautet der Hinweis „Es sind noch keine Programmpunkte vorhanden.",
+  mit gesetztem Tages- oder Bühnenfilter „Für diese Auswahl gibt es keine Acts." (T-24).
 - Aktualisierung durch Neuladen der Seite – keine Echtzeit-Updates (Scope-Abgrenzung).
 
 ## Tests
@@ -278,6 +281,11 @@ im Importpfad – daher keine `conftest.py` und keine `pytest.ini` nötig.
   Ende nach Start wird angenommen, Ende vor Start und Ende gleich Start werden mit
   `IntegrityError` abgelehnt. Eigene Engine pro Test (Fixture), kein `TestClient`. Läuft unter
   In-Memory-SQLite, weil SQLite CHECK-Constraints ebenfalls durchsetzt.
+- `tests/test_seed.py` – die Seed-Daten aus `build_acts()`, ohne DB: ein Act pro Slot, vier
+  aufeinanderfolgende Tage ab dem Starttag, `ends_at > starts_at` für alle Acts, ein Act über
+  Mitternacht („Night Owls") endet am Folgetag und gehört zu seinem Starttag, eine `Stage` pro
+  Bühnenname (sonst scheitert die Unique-Constraint). Wichtig, weil US-8 an genau diesen Daten
+  im Browser geprüft wird.
 - `tests/test_api.py` – wenige Tests: Sortierung, Bühnen- und Tagesfilter (auch kombiniert),
   Bühnen- und Tagesliste, `status` im JSON (auch innerhalb eines gewählten Tages).
   Nutzt In-Memory-SQLite – bewusst **nicht** die PostgreSQL-Datenbank: die Tests laufen so

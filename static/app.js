@@ -39,19 +39,26 @@ async function loadProgram() {
   const data = await response.json();
   if (request !== latestProgramRequest) return; // stale answer, a newer request is pending
   renderNow(data.now);
-  renderProgram(data.items);
+  renderProgram(data.items, Boolean(stage || day));
 }
 
 function renderNow(now) {
   document.getElementById("now-hint").textContent = `Festivalzeit: ${formatTime(now)} Uhr`;
 }
 
-function renderProgram(items) {
+// With a filter set, an empty list only means "nothing matches", not "no program at all".
+const EMPTY_HINTS = {
+  noProgram: "Es sind noch keine Programmpunkte vorhanden.",
+  noMatch: "Für diese Auswahl gibt es keine Acts.",
+};
+
+function renderProgram(items, isFiltered) {
   const program = document.getElementById("program");
   const emptyHint = document.getElementById("empty-hint");
 
   program.innerHTML = "";
   emptyHint.hidden = items.length > 0;
+  emptyHint.textContent = isFiltered ? EMPTY_HINTS.noMatch : EMPTY_HINTS.noProgram;
 
   for (const [day, dayItems] of groupByDay(items)) {
     program.appendChild(renderDay(day, dayItems));
